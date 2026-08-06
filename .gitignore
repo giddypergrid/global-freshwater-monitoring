@@ -1,0 +1,28 @@
+# dependencies
+node_modules/
+
+# builds
+.next/
+out/
+build/
+dist/
+*.tsbuildinfo
+
+# hosting
+.vercel
+
+# env / secrets
+.env*
+
+# python (data pipeline)
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# playwright output
+screenshots/
+
+# os
+.DS_Store
+Thumbs.db

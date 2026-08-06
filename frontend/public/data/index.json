@@ -1,0 +1,544 @@
+{
+  "defaultCountry": "New Zealand",
+  "indicators": [
+    {
+      "key": "tn",
+      "label": "Total nitrogen"
+    },
+    {
+      "key": "tp",
+      "label": "Total phosphorus"
+    },
+    {
+      "key": "ecoli",
+      "label": "E. coli"
+    },
+    {
+      "key": "sediment",
+      "label": "Suspended sediment"
+    }
+  ],
+  "countries": [
+    {
+      "name": "New Zealand",
+      "bbox": [
+        168.1161,
+        -46.3458,
+        176.5422,
+        -37.0208
+      ],
+      "catchmentCount": 7
+    },
+    {
+      "name": "Australia",
+      "bbox": [
+        115.7417,
+        -37.6792,
+        152.4875,
+        -18.1458
+      ],
+      "catchmentCount": 4
+    },
+    {
+      "name": "Brazil",
+      "bbox": [
+        -79.6125,
+        -34.6417,
+        -36.308,
+        5.2833
+      ],
+      "catchmentCount": 4
+    },
+    {
+      "name": "China",
+      "bbox": [
+        90.5456,
+        21.525,
+        141.1172,
+        55.9375
+      ],
+      "catchmentCount": 4
+    },
+    {
+      "name": "Germany",
+      "bbox": [
+        4.15,
+        42.0828,
+        29.7173,
+        53.8421
+      ],
+      "catchmentCount": 4
+    },
+    {
+      "name": "United States",
+      "bbox": [
+        -123.7589,
+        29.0873,
+        -77.8417,
+        52.8881
+      ],
+      "catchmentCount": 4
+    }
+  ],
+  "catchments": [
+    {
+      "id": "clutha",
+      "name": "Clutha",
+      "country": "New Zealand",
+      "areaKm2": 20630,
+      "areaPublishedKm2": 21960,
+      "subBasins": 1,
+      "bbox": [
+        168.1161,
+        -46.3458,
+        170.0917,
+        -43.9535
+      ],
+      "reachCount": 632,
+      "siteCount": 45,
+      "minOrder": 3
+    },
+    {
+      "id": "manawatu",
+      "name": "Manawatu",
+      "country": "New Zealand",
+      "areaKm2": 5848,
+      "areaPublishedKm2": 5900,
+      "subBasins": 1,
+      "bbox": [
+        175.2202,
+        -40.7838,
+        176.3875,
+        -39.8667
+      ],
+      "reachCount": 148,
+      "siteCount": 32,
+      "minOrder": 3
+    },
+    {
+      "id": "rangitikei",
+      "name": "Rangitikei",
+      "country": "New Zealand",
+      "areaKm2": 3920,
+      "areaPublishedKm2": 3980,
+      "subBasins": 1,
+      "bbox": [
+        175.2244,
+        -40.3545,
+        176.2006,
+        -39.0833
+      ],
+      "reachCount": 101,
+      "siteCount": 23,
+      "minOrder": 3
+    },
+    {
+      "id": "waikato",
+      "name": "Waikato",
+      "country": "New Zealand",
+      "areaKm2": 14399,
+      "areaPublishedKm2": 14260,
+      "subBasins": 1,
+      "bbox": [
+        174.7581,
+        -39.3083,
+        176.5422,
+        -37.0208
+      ],
+      "reachCount": 378,
+      "siteCount": 40,
+      "minOrder": 3
+    },
+    {
+      "id": "wairau",
+      "name": "Wairau",
+      "country": "New Zealand",
+      "areaKm2": 3619,
+      "areaPublishedKm2": 4180,
+      "subBasins": 1,
+      "bbox": [
+        172.7172,
+        -42.1881,
+        174.0381,
+        -41.2952
+      ],
+      "reachCount": 109,
+      "siteCount": 24,
+      "minOrder": 3
+    },
+    {
+      "id": "waitaki",
+      "name": "Waitaki",
+      "country": "New Zealand",
+      "areaKm2": 11928,
+      "areaPublishedKm2": 11970,
+      "subBasins": 1,
+      "bbox": [
+        169.5413,
+        -45.0792,
+        171.1458,
+        -43.4125
+      ],
+      "reachCount": 391,
+      "siteCount": 45,
+      "minOrder": 3
+    },
+    {
+      "id": "whanganui",
+      "name": "Whanganui",
+      "country": "New Zealand",
+      "areaKm2": 7114,
+      "areaPublishedKm2": 7120,
+      "subBasins": 1,
+      "bbox": [
+        174.675,
+        -39.9839,
+        175.6917,
+        -38.4708
+      ],
+      "reachCount": 246,
+      "siteCount": 37,
+      "minOrder": 3
+    },
+    {
+      "id": "burdekin",
+      "name": "Burdekin",
+      "country": "Australia",
+      "areaKm2": 130431,
+      "areaPublishedKm2": 130120,
+      "subBasins": 17,
+      "bbox": [
+        144.225,
+        -24.4417,
+        148.642,
+        -18.1458
+      ],
+      "reachCount": 1499,
+      "siteCount": 45,
+      "minOrder": 3
+    },
+    {
+      "id": "fitzroy-qld",
+      "name": "Fitzroy",
+      "country": "Australia",
+      "areaKm2": 140912,
+      "areaPublishedKm2": 142665,
+      "subBasins": 17,
+      "bbox": [
+        146.575,
+        -26.4253,
+        151.0333,
+        -21.2744
+      ],
+      "reachCount": 1608,
+      "siteCount": 45,
+      "minOrder": 3
+    },
+    {
+      "id": "murray-darling",
+      "name": "Murray-Darling",
+      "country": "Australia",
+      "areaKm2": 1055417,
+      "areaPublishedKm2": 1059000,
+      "subBasins": 137,
+      "bbox": [
+        138.8119,
+        -37.6792,
+        152.4875,
+        -24.5917
+      ],
+      "reachCount": 3000,
+      "siteCount": 45,
+      "minOrder": 4
+    },
+    {
+      "id": "swan-avon",
+      "name": "Swan-Avon",
+      "country": "Australia",
+      "areaKm2": 128290,
+      "areaPublishedKm2": 124000,
+      "subBasins": 19,
+      "bbox": [
+        115.7417,
+        -33.9298,
+        121.0542,
+        -29.6042
+      ],
+      "reachCount": 1651,
+      "siteCount": 45,
+      "minOrder": 3
+    },
+    {
+      "id": "amazon",
+      "name": "Amazon",
+      "country": "Brazil",
+      "areaKm2": 5912923,
+      "areaPublishedKm2": 5956000,
+      "subBasins": 425,
+      "bbox": [
+        -79.6125,
+        -20.4792,
+        -50.341,
+        5.2833
+      ],
+      "reachCount": 3000,
+      "siteCount": 25,
+      "minOrder": 8
+    },
+    {
+      "id": "parana",
+      "name": "Parana",
+      "country": "Brazil",
+      "areaKm2": 2646302,
+      "areaPublishedKm2": 2582672,
+      "subBasins": 267,
+      "bbox": [
+        -67.0083,
+        -34.6417,
+        -43.5833,
+        -14.1458
+      ],
+      "reachCount": 3000,
+      "siteCount": 45,
+      "minOrder": 6
+    },
+    {
+      "id": "sao-francisco",
+      "name": "Sao Francisco",
+      "country": "Brazil",
+      "areaKm2": 637202,
+      "areaPublishedKm2": 641000,
+      "subBasins": 97,
+      "bbox": [
+        -47.6417,
+        -20.9339,
+        -36.308,
+        -7.2667
+      ],
+      "reachCount": 3000,
+      "siteCount": 45,
+      "minOrder": 4
+    },
+    {
+      "id": "tocantins",
+      "name": "Tocantins",
+      "country": "Brazil",
+      "areaKm2": 772467,
+      "areaPublishedKm2": 764183,
+      "subBasins": 129,
+      "bbox": [
+        -55.4083,
+        -18.0542,
+        -45.825,
+        -2.1119
+      ],
+      "reachCount": 3000,
+      "siteCount": 39,
+      "minOrder": 5
+    },
+    {
+      "id": "amur-songhua",
+      "name": "Amur-Songhua",
+      "country": "China",
+      "areaKm2": 2238973,
+      "areaPublishedKm2": 1855000,
+      "subBasins": 312,
+      "bbox": [
+        107.5328,
+        41.7083,
+        141.1172,
+        55.9375
+      ],
+      "reachCount": 3000,
+      "siteCount": 32,
+      "minOrder": 6
+    },
+    {
+      "id": "pearl",
+      "name": "Pearl",
+      "country": "China",
+      "areaKm2": 403805,
+      "areaPublishedKm2": 453690,
+      "subBasins": 60,
+      "bbox": [
+        102.2536,
+        21.525,
+        114.7208,
+        26.825
+      ],
+      "reachCount": 3000,
+      "siteCount": 41,
+      "minOrder": 4
+    },
+    {
+      "id": "yangtze",
+      "name": "Yangtze",
+      "country": "China",
+      "areaKm2": 1924625,
+      "areaPublishedKm2": 1808500,
+      "subBasins": 186,
+      "bbox": [
+        90.5456,
+        24.475,
+        120.3583,
+        35.9
+      ],
+      "reachCount": 3000,
+      "siteCount": 26,
+      "minOrder": 6
+    },
+    {
+      "id": "yellow-river",
+      "name": "Yellow River",
+      "country": "China",
+      "areaKm2": 962988,
+      "areaPublishedKm2": 795000,
+      "subBasins": 121,
+      "bbox": [
+        95.9083,
+        32.1583,
+        119.1798,
+        41.8379
+      ],
+      "reachCount": 3000,
+      "siteCount": 37,
+      "minOrder": 5
+    },
+    {
+      "id": "danube",
+      "name": "Danube",
+      "country": "Germany",
+      "areaKm2": 795318,
+      "areaPublishedKm2": 801463,
+      "subBasins": 113,
+      "bbox": [
+        8.1542,
+        42.0828,
+        29.7173,
+        50.2458
+      ],
+      "reachCount": 3000,
+      "siteCount": 39,
+      "minOrder": 5
+    },
+    {
+      "id": "elbe",
+      "name": "Elbe",
+      "country": "Germany",
+      "areaKm2": 138383,
+      "areaPublishedKm2": 148268,
+      "subBasins": 9,
+      "bbox": [
+        9.816,
+        48.4833,
+        16.8083,
+        53.8421
+      ],
+      "reachCount": 1779,
+      "siteCount": 45,
+      "minOrder": 3
+    },
+    {
+      "id": "rhine",
+      "name": "Rhine",
+      "country": "Germany",
+      "areaKm2": 163123,
+      "areaPublishedKm2": 185000,
+      "subBasins": 9,
+      "bbox": [
+        4.15,
+        46.3167,
+        11.8667,
+        52.1506
+      ],
+      "reachCount": 2879,
+      "siteCount": 45,
+      "minOrder": 3
+    },
+    {
+      "id": "weser",
+      "name": "Weser",
+      "country": "Germany",
+      "areaKm2": 44776,
+      "areaPublishedKm2": 46306,
+      "subBasins": 1,
+      "bbox": [
+        8.0583,
+        50.3577,
+        11.3125,
+        53.4083
+      ],
+      "reachCount": 666,
+      "siteCount": 45,
+      "minOrder": 3
+    },
+    {
+      "id": "colorado",
+      "name": "Colorado",
+      "country": "United States",
+      "areaKm2": 661112,
+      "areaPublishedKm2": 640000,
+      "subBasins": 86,
+      "bbox": [
+        -116.9547,
+        30.9536,
+        -105.6254,
+        43.462
+      ],
+      "reachCount": 3000,
+      "siteCount": 45,
+      "minOrder": 4
+    },
+    {
+      "id": "columbia",
+      "name": "Columbia",
+      "country": "United States",
+      "areaKm2": 669400,
+      "areaPublishedKm2": 668000,
+      "subBasins": 90,
+      "bbox": [
+        -123.7589,
+        41.1292,
+        -109.7661,
+        52.8881
+      ],
+      "reachCount": 3000,
+      "siteCount": 45,
+      "minOrder": 5
+    },
+    {
+      "id": "mississippi",
+      "name": "Mississippi",
+      "country": "United States",
+      "areaKm2": 3240617,
+      "areaPublishedKm2": 3220000,
+      "subBasins": 319,
+      "bbox": [
+        -113.9333,
+        29.0873,
+        -77.8417,
+        50.6421
+      ],
+      "reachCount": 3000,
+      "siteCount": 30,
+      "minOrder": 6
+    },
+    {
+      "id": "sacramento",
+      "name": "Sacramento",
+      "country": "United States",
+      "areaKm2": 156295,
+      "areaPublishedKm2": 154000,
+      "subBasins": 28,
+      "bbox": [
+        -123.0964,
+        34.7708,
+        -117.9869,
+        42.4292
+      ],
+      "reachCount": 2062,
+      "siteCount": 45,
+      "minOrder": 3
+    }
+  ]
+}
