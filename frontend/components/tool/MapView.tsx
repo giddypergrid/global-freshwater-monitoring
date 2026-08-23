@@ -1,96 +1,96 @@
 "use client";
 
-import { useCallback } from "react";
 import { MapContainer, TileLayer } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 
 import FitBounds from "./layers/FitBounds";
 import CatchmentOutlines from "./layers/CatchmentOutlines";
-import ReachLayer from "./layers/ReachLayer";
 import SiteLayer from "./layers/SiteLayer";
 import Legend from "./Legend";
+import type { SiteResult } from "@/lib/summary";
 import type {
-  CatchmentDetail,
   CatchmentOutlines as OutlineCollection,
-  Query,
-  ReachProps,
-  Selection,
-  SiteProps,
+  DataIndex,
 } from "@/lib/types";
 
 interface Props {
   outlines: OutlineCollection | null;
-  country: string;
+  index: DataIndex | null;
+  region: string;
   selectedId: string | null;
-  detail: CatchmentDetail | null;
-  query: Query;
+  results: SiteResult[];
+  selectedSiteId: string | null;
   bbox: [number, number, number, number] | null;
   showSites: boolean;
   loading: boolean;
   onSelectCatchment: (id: string) => void;
-  onSelectFeature: (selection: Selection | null) => void;
+  onSelectSite: (id: string | null) => void;
+  onJumpRegion: (region: string) => void;
 }
 
-/** Neutral grey basemap — the data carries the colour, not the terrain. */
+/** Neutral grey basemap. The data carries the colour, not the terrain. */
 const BASEMAP = "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png";
+/** Full extent of one world, in Leaflet's [south, west], [north, east] order. */
+const WORLD_BOUNDS: [[number, number], [number, number]] = [
+  [-85, -180],
+  [85, 180],
+];
+
 const ATTRIBUTION =
   '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>';
 
 export default function MapView({
   outlines,
-  country,
+  index,
+  region,
   selectedId,
-  detail,
-  query,
+  results,
+  selectedSiteId,
   bbox,
   showSites,
   loading,
   onSelectCatchment,
-  onSelectFeature,
+  onSelectSite,
+  onJumpRegion,
 }: Props) {
-  // Stable identities — the layers rebuild whenever these change.
-  const handleReach = useCallback(
-    (props: ReachProps | null) => onSelectFeature(props ? { kind: "reach", props } : null),
-    [onSelectFeature],
-  );
-  const handleSite = useCallback(
-    (props: SiteProps | null) => onSelectFeature(props ? { kind: "site", props } : null),
-    [onSelectFeature],
-  );
-
   return (
     <div className="relative h-full w-full">
       <MapContainer
-        center={[-41.1, 172.5]}
-        zoom={5}
+        center={[20, 10]}
+        zoom={2}
+        minZoom={2}
         preferCanvas
         zoomControl
+        // One world only. Panning past the date line repeats the map and the sites do
+        // not repeat with it, so a copy would look empty.
+        maxBounds={WORLD_BOUNDS}
+        maxBoundsViscosity={1}
         className="h-full w-full"
       >
-        <TileLayer url={BASEMAP} attribution={ATTRIBUTION} />
+        {/* `bounds` stops noWrap asking for x=-1 and x=4 at zoom 2, which CARTO 400s on. */}
+        <TileLayer url={BASEMAP} attribution={ATTRIBUTION} noWrap bounds={WORLD_BOUNDS} />
         <FitBounds bbox={bbox} />
         <CatchmentOutlines
           outlines={outlines}
-          country={country}
+          catchments={index?.catchments ?? []}
+          region={region}
           selectedId={selectedId}
           onSelect={onSelectCatchment}
-        />
-        <ReachLayer
-          reaches={detail?.reaches ?? null}
-          query={query}
-          onSelect={handleReach}
+          onJumpRegion={onJumpRegion}
         />
         <SiteLayer
-          sites={detail?.sites ?? null}
-          query={query}
+          results={results}
+          selectedCatchmentId={selectedId}
+          selectedSiteId={selectedSiteId}
+          region={region}
           visible={showSites}
-          onSelect={handleSite}
+          onSelect={onSelectSite}
         />
       </MapContainer>
 
       {loading && (
-        <div className="absolute top-3 left-1/2 z-[1000] -translate-x-1/2 rounded-full border border-slate-300 bg-white/95 px-3 py-1.5 text-xs text-slate-600 shadow-sm">
-          Loading catchment…
+        <div className="absolute top-3 left-1/2 z-[1000] -translate-x-1/2 rounded-full border border-slate-300 bg-white/95 px-3 py-1.5 text-xs text-slate-700 shadow-sm">
+          Loading power lookup…
         </div>
       )}
 

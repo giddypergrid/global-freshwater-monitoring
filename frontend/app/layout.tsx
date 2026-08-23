@@ -15,7 +15,8 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Global Freshwater Monitoring Design",
   description:
-    "Statistical power of river water quality monitoring designs across six countries.",
+    "Power to detect a proportional decrease in total nitrogen or total phosphorus at " +
+    "15,313 monitored river sites, across five sampling frequencies and ten durations.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

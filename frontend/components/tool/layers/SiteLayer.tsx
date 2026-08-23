@@ -1,71 +1,107 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { useMap } from "react-leaflet";
 import L from "leaflet";
-import { detectionPower, powerColour } from "@/lib/power";
-import type { Query, SiteProps } from "@/lib/types";
-
-type SiteCollection = GeoJSON.FeatureCollection<GeoJSON.Point, SiteProps>;
+import { formatPower, powerColour } from "@/lib/power";
+import type { SiteResult } from "@/lib/summary";
 
 interface Props {
-  sites: SiteCollection | null;
-  query: Query;
+  results: SiteResult[];
+  selectedCatchmentId: string | null;
+  selectedSiteId: string | null;
+  region: string;
   visible: boolean;
-  onSelect: (site: SiteProps | null) => void;
+  onSelect: (id: string | null) => void;
 }
 
-function siteStyle(props: SiteProps, query: Query): L.CircleMarkerOptions {
-  const power = detectionPower(
-    props.cv[query.indicator],
-    query.reduction,
-    query.years,
-    query.samplesPerYear,
-  );
-  return {
-    fillColor: powerColour(power),
-    fillOpacity: 1,
-    color: "#0f172a",
-    weight: 1,
-    radius: 5,
-  };
+/** 15,313 markers would crawl. Only what is on screen is drawn. */
+const MAX_MARKERS = 4000;
+
+function radius(inCatchment: boolean, isSelected: boolean): number {
+  if (isSelected) return 9;
+  return inCatchment ? 7 : 3;
 }
 
-/** Existing monitoring sites, coloured by the same power scale as the reaches. */
-export default function SiteLayer({ sites, query, visible, onSelect }: Props) {
+export default function SiteLayer({
+  results,
+  selectedCatchmentId,
+  selectedSiteId,
+  region,
+  visible,
+  onSelect,
+}: Props) {
   const map = useMap();
-  const layerRef = useRef<L.GeoJSON<SiteProps> | null>(null);
-  const queryRef = useRef(query);
-  queryRef.current = query;
+  const layerRef = useRef<L.LayerGroup | null>(null);
+  const selectRef = useRef(onSelect);
 
   useEffect(() => {
-    if (!sites || !visible) return;
+    selectRef.current = onSelect;
+  }, [onSelect]);
 
-    const layer = L.geoJSON<SiteProps>(sites, {
-      pointToLayer: (feature, latlng) =>
-        L.circleMarker(latlng, siteStyle(feature.properties as SiteProps, queryRef.current)),
-      onEachFeature: (feature, lyr) => {
-        lyr.on("click", () => onSelect(feature.properties as SiteProps));
-      },
+  // Until a catchment is open the sites are context only, so the region's own sites are
+  // all that is worth drawing. Once it is open, its sites come first and always draw.
+  const ordered = useMemo(() => {
+    if (!selectedCatchmentId) {
+      return region ? results.filter((r) => r.site.region === region) : results;
+    }
+    return [...results].sort((a, b) => {
+      const inA = a.site.hybasId === selectedCatchmentId ? 0 : 1;
+      const inB = b.site.hybasId === selectedCatchmentId ? 0 : 1;
+      return inA - inB;
     });
+  }, [results, selectedCatchmentId, region]);
 
-    layer.addTo(map);
-    layerRef.current = layer;
+  useEffect(() => {
+    if (!visible) return;
+
+    const group = L.layerGroup().addTo(map);
+    layerRef.current = group;
+
+    const draw = () => {
+      group.clearLayers();
+      const bounds = map.getBounds();
+      let drawn = 0;
+
+      for (const result of ordered) {
+        const { site } = result;
+        const inCatchment = site.hybasId === selectedCatchmentId;
+        if (!inCatchment && !bounds.contains([site.lat, site.lon])) continue;
+        if (drawn >= MAX_MARKERS) break;
+        drawn += 1;
+
+        const isSelected = site.id === selectedSiteId;
+        const marker = L.circleMarker([site.lat, site.lon], {
+          // Only sites in the open catchment take clicks. Everything else is context, and
+          // making it inert stops a stray click from jumping the whole drill-down.
+          interactive: inCatchment,
+          radius: radius(inCatchment, isSelected),
+          fillColor: powerColour(result.power),
+          fillOpacity: inCatchment ? 1 : 0.55,
+          color: isSelected ? "#b45309" : "#0f172a",
+          weight: isSelected ? 2.5 : inCatchment ? 1 : 0.5,
+        });
+
+        if (inCatchment) {
+          marker.bindTooltip(
+            `${site.id}<br>power ${formatPower(result.power)} · ${site.current.toPrecision(3)} mg/L`,
+            { sticky: true },
+          );
+          marker.on("click", () => selectRef.current(site.id));
+        }
+        marker.addTo(group);
+      }
+    };
+
+    draw();
+    map.on("moveend zoomend", draw);
 
     return () => {
-      layer.remove();
+      map.off("moveend zoomend", draw);
+      group.remove();
       layerRef.current = null;
     };
-  }, [sites, visible, map, onSelect]);
-
-  useEffect(() => {
-    layerRef.current?.eachLayer((lyr) => {
-      const marker = lyr as L.CircleMarker;
-      const props = (lyr as unknown as { feature: GeoJSON.Feature<GeoJSON.Point, SiteProps> })
-        .feature.properties;
-      marker.setStyle(siteStyle(props, query));
-    });
-  }, [query]);
+  }, [ordered, selectedCatchmentId, selectedSiteId, visible, map]);
 
   return null;
 }
