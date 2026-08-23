@@ -3,7 +3,7 @@ import Link from "next/link";
 import ToolShell from "@/components/tool/ToolShell";
 
 export const metadata: Metadata = {
-  title: "Rivers — Global Freshwater Monitoring Design",
+  title: "Rivers · Global Freshwater Monitoring Design",
   description:
     "Detection power for water quality improvement in rivers, by catchment and monitoring design.",
 };

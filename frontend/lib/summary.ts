@@ -1,16 +1,38 @@
-import { detectionPower, frequencyLabel, minDetectableReduction } from "./power";
-import type { CatchmentDetail, Query } from "./types";
+/**
+ * Catchment-level roll-up.
+ *
+ * These are summaries of SITE-SPECIFIC results — the share of a catchment's monitored
+ * sites that individually reach the target. They are NOT the power of a pooled
+ * catchment-wide trend test, which would need a multilevel model that represents how
+ * sites on the same river depend on each other. Label them accordingly in the UI.
+ */
 
-/** Conventional target: an 80% chance of detecting the change. */
-export const TARGET_POWER = 80;
+import {
+  TARGET_POWER,
+  frequencyOption,
+  minDetectableReduction,
+  plannedSampleCount,
+  powerForReduction,
+} from "./power";
+import { slopeSe } from "./data";
+import type { PowerSlice, Query, Site } from "./types";
 
-export interface PowerSummary {
-  reachCount: number;
-  siteCount: number;
+export interface SiteResult {
+  site: Site;
+  slopeSe: number;
+  power: number;
+  minDetectable: number;
+}
+
+export interface CatchmentStats {
+  count: number;
+  atTarget: number;
+  shareAtTarget: number;
   medianPower: number;
-  reachesAtTarget: number;
-  sitesAtTarget: number;
   medianMinDetectable: number;
+  tierA: number;
+  tierB: number;
+  aboveThreshold: number;
 }
 
 function median(values: number[]): number {
@@ -20,72 +42,95 @@ function median(values: number[]): number {
   return sorted.length % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid];
 }
 
-export function summarise(detail: CatchmentDetail, query: Query): PowerSummary {
-  const { indicator, reduction, years, samplesPerYear } = query;
+/** Sites with no row in the slice are dropped rather than shown as zero power. */
+export function resolveSites(
+  sites: Site[],
+  slice: PowerSlice | null,
+  query: Query,
+): SiteResult[] {
+  if (!slice) return [];
+  const results: SiteResult[] = [];
+  for (const site of sites) {
+    const se = slopeSe(slice, site.id, query.years);
+    if (se === null) continue;
+    results.push({
+      site,
+      slopeSe: se,
+      power: powerForReduction(query.reduction, query.years, se),
+      minDetectable: minDetectableReduction(se, query.years),
+    });
+  }
+  return results;
+}
 
-  const reachPowers = detail.reaches.features.map((f) =>
-    detectionPower(f.properties.cv[indicator], reduction, years, samplesPerYear),
-  );
-  const sitePowers = detail.sites.features.map((f) =>
-    detectionPower(f.properties.cv[indicator], reduction, years, samplesPerYear),
-  );
-  const minDetectable = detail.reaches.features.map((f) =>
-    minDetectableReduction(f.properties.cv[indicator], years, samplesPerYear, TARGET_POWER),
-  );
-
+export function summarise(results: SiteResult[]): CatchmentStats {
+  const atTarget = results.filter((r) => r.power >= TARGET_POWER).length;
   return {
-    reachCount: reachPowers.length,
-    siteCount: sitePowers.length,
-    medianPower: median(reachPowers),
-    reachesAtTarget: reachPowers.filter((p) => p >= TARGET_POWER).length,
-    sitesAtTarget: sitePowers.filter((p) => p >= TARGET_POWER).length,
-    medianMinDetectable: median(minDetectable),
+    count: results.length,
+    atTarget,
+    shareAtTarget: results.length ? atTarget / results.length : 0,
+    medianPower: median(results.map((r) => r.power)),
+    medianMinDetectable: median(results.map((r) => r.minDetectable)),
+    tierA: results.filter((r) => r.site.tier === "A_robust").length,
+    tierB: results.filter((r) => r.site.tier === "B_moderate").length,
+    aboveThreshold: results.filter((r) => r.site.aboveThreshold).length,
   };
 }
 
-/** Flat per-reach export, with the query repeated so the file stands on its own. */
-export function buildCsv(detail: CatchmentDetail, query: Query, indicatorLabel: string): string {
-  const { indicator, reduction, years, samplesPerYear } = query;
+/** Flat per-site export. The query is repeated on every row so the file stands alone. */
+export function buildCsv(results: SiteResult[], query: Query): string {
+  const frequency = frequencyOption(query.frequency);
+  const samples = plannedSampleCount(query.years, frequency.samplesPerYear);
 
   const header = [
-    "catchment",
-    "country",
-    "reach_id",
-    "stream_order",
-    "length_km",
-    "indicator",
-    "reduction_pct",
-    "years",
+    "site_parameter_id",
+    "site_id",
+    "parameter",
+    "latitude",
+    "longitude",
+    "hybas_id",
+    "power_readiness_tier",
+    "current_modelled_annual_median_mg_L",
+    "threshold_mg_L",
+    "above_threshold",
+    "frequency",
     "samples_per_year",
-    "coefficient_of_variation",
-    "detection_power_pct",
-    "min_detectable_reduction_pct",
+    "duration_years",
+    "planned_sample_count",
+    "slope_se_per_year",
+    "reduction_percent",
+    "power_one_sided_alpha_0_05",
+    "reaches_target_power",
+    "min_detectable_reduction_percent",
   ].join(",");
 
-  const rows = detail.reaches.features.map((f) => {
-    const p = f.properties;
-    const cv = p.cv[indicator];
-    return [
-      detail.name,
-      detail.country,
-      p.id,
-      p.ord,
-      p.len,
-      indicatorLabel,
-      reduction,
-      years,
-      samplesPerYear,
-      cv.toFixed(3),
-      detectionPower(cv, reduction, years, samplesPerYear).toFixed(1),
-      minDetectableReduction(cv, years, samplesPerYear, TARGET_POWER).toFixed(1),
-    ].join(",");
-  });
+  const rows = results.map((r) =>
+    [
+      r.site.id,
+      r.site.siteId,
+      r.site.parameter,
+      r.site.lat,
+      r.site.lon,
+      r.site.hybasId ?? "",
+      r.site.tier,
+      r.site.current,
+      r.site.threshold,
+      r.site.aboveThreshold,
+      query.frequency,
+      frequency.samplesPerYear,
+      query.years,
+      samples,
+      r.slopeSe,
+      query.reduction,
+      r.power.toFixed(4),
+      r.power >= TARGET_POWER,
+      r.minDetectable.toFixed(1),
+    ].join(","),
+  );
 
   return [header, ...rows].join("\n");
 }
 
-export function csvFilename(detail: CatchmentDetail, query: Query): string {
-  return `${detail.id}_${query.indicator}_${query.years}y_${frequencyLabel(
-    query.samplesPerYear,
-  ).toLowerCase()}.csv`;
+export function csvFilename(scope: string, query: Query): string {
+  return `${scope}_${query.nutrient}_${query.frequency}_${query.years}y_${query.reduction}pct.csv`;
 }

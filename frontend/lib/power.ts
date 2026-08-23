@@ -1,24 +1,20 @@
 /**
- * Detection power for a step change in a monitored water-quality series.
+ * Power to detect a proportional decrease in TN or TP at a monitored site.
  *
- * A site is sampled at a fixed frequency for a number of years, and the record is
- * split into a "before" and "after" half. The question the tool answers is: if the
- * true concentration dropped by X%, how often would that monitoring record actually
- * show a statistically significant drop?
+ * The heavy work already happened offline: for every site, sampling frequency and
+ * duration, `slope_se_per_year` holds the GLS standard error of the annual log-scale
+ * trend. Given that one number, power for ANY reduction is two lines of arithmetic,
+ * which is why the reduction is a slider rather than a stored column.
  *
- * Standard two-sample comparison of means. With n samples split evenly, the
- * standard error of the difference is 2*CV/sqrt(n), so
- *
- *     power = P( reduction / SE  >  z(1-alpha/2) )
- *
- * The real NZ tool derives its curves from Monte Carlo simulation offline and ships
- * the results in the data files. This runs the closed-form equivalent in the browser
- * from a per-reach coefficient of variation, which is what keeps the app backend-free.
+ * One-sided test, H0: slope = 0 against HA: slope < 0, alpha = 0.05.
+ * See WEBSITE_IMPLEMENTATION.md.
  */
 
-const Z_ALPHA = 1.959963985; // two-sided 5% significance
+export const ALPHA = 0.05;
+export const TARGET_POWER = 0.8;
+export const Z_ONE_SIDED_0_05 = 1.6448536269514722;
 
-/** Abramowitz & Stegun 26.2.17 — max error 7.5e-8. */
+/** Abramowitz & Stegun 26.2.17 — max error 7.5e-8, verified against scipy at 6.97e-08. */
 export function normalCdf(z: number): number {
   const sign = z < 0 ? -1 : 1;
   const x = Math.abs(z) / Math.SQRT2;
@@ -32,7 +28,7 @@ export function normalCdf(z: number): number {
   return 0.5 * (1 + sign * y);
 }
 
-/** Inverse normal CDF (Acklam's rational approximation). */
+/** Inverse normal CDF (Acklam's rational approximation). Needed for the target-power line. */
 export function normalQuantile(p: number): number {
   const a = [-39.696830286653757, 220.9460984245205, -275.92851044696869,
     138.357751867269, -30.66479806614716, 2.5066282774592392];
@@ -57,50 +53,85 @@ export function normalQuantile(p: number): number {
     (((((b[0] * r + b[1]) * r + b[2]) * r + b[3]) * r + b[4]) * r + 1);
 }
 
-/** Standard error of the before/after difference, as a fraction of the mean. */
-function standardError(cv: number, years: number, samplesPerYear: number): number {
-  const n = years * samplesPerYear;
-  return (2 * cv) / Math.sqrt(n);
+/**
+ * The true annual log-scale slope of a decline that reaches `reductionPct` at the
+ * end of `years`. Sign dropped — the test already knows it is looking downwards.
+ */
+export function slopeForReduction(reductionPct: number, years: number): number {
+  return Math.abs(Math.log1p(-reductionPct / 100) / years);
 }
 
-/** Probability of detecting `reductionPct` (0-100), as a percentage 0-100. */
-export function detectionPower(
-  cv: number,
+/** Power as a fraction 0-1. Returns 0 rather than throwing for an out-of-range slider. */
+export function powerForReduction(
   reductionPct: number,
   years: number,
-  samplesPerYear: number,
+  slopeSe: number,
 ): number {
-  if (reductionPct <= 0) return 0;
-  const se = standardError(cv, years, samplesPerYear);
-  return normalCdf(reductionPct / 100 / se - Z_ALPHA) * 100;
+  if (!(reductionPct > 0 && reductionPct < 100)) return 0;
+  if (!(years > 0) || !(slopeSe > 0)) return 0;
+  const power = normalCdf(slopeForReduction(reductionPct, years) / slopeSe - Z_ONE_SIDED_0_05);
+  return Math.min(1, Math.max(0, power));
 }
 
-/** Smallest reduction (%) detectable at `targetPower` (0-100), capped at 100. */
+/**
+ * Smallest reduction (%) this design could detect at `targetPower`.
+ * Inverts the line above: slope = (z_alpha + z_power) * SE, then back to a percentage.
+ */
 export function minDetectableReduction(
-  cv: number,
+  slopeSe: number,
   years: number,
-  samplesPerYear: number,
-  targetPower: number,
+  targetPower: number = TARGET_POWER,
 ): number {
-  const se = standardError(cv, years, samplesPerYear);
-  const value = (Z_ALPHA + normalQuantile(targetPower / 100)) * se * 100;
-  return Math.min(value, 100);
+  if (!(slopeSe > 0) || !(years > 0)) return 100;
+  const slope = (Z_ONE_SIDED_0_05 + normalQuantile(targetPower)) * slopeSe;
+  return Math.min(100, (1 - Math.exp(-slope * years)) * 100);
+}
+
+// --- monitoring design ------------------------------------------------------
+
+export interface FrequencyOption {
+  key: string;
+  label: string;
+  samplesPerYear: number;
+  /** Below the interval the historical CAR(1) was fitted at, so flag the result. */
+  extrapolated: boolean;
+}
+
+/** Values are the manifest's, not rounded — samplesPerYear feeds the SE calculation. */
+export const FREQUENCIES: FrequencyOption[] = [
+  { key: "quarterly", label: "Quarterly", samplesPerYear: 4, extrapolated: false },
+  { key: "monthly", label: "Monthly", samplesPerYear: 12, extrapolated: false },
+  { key: "fortnightly", label: "Fortnightly", samplesPerYear: 26.08875, extrapolated: false },
+  { key: "weekly", label: "Weekly", samplesPerYear: 52.1775, extrapolated: true },
+  { key: "daily", label: "Daily", samplesPerYear: 365.2425, extrapolated: true },
+];
+
+export const DURATIONS = [5, 10, 15, 20, 25, 30, 35, 40, 45, 50];
+
+export function frequencyOption(key: string): FrequencyOption {
+  return FREQUENCIES.find((f) => f.key === key) ?? FREQUENCIES[1];
+}
+
+/** Nominal, assuming no missed visits — the same rounding the lookup was built with. */
+export function plannedSampleCount(years: number, samplesPerYear: number): number {
+  return Math.round(years * samplesPerYear);
 }
 
 // --- colour scale -----------------------------------------------------------
 
-export const POWER_BREAKS = [20, 40, 60, 80];
+export const POWER_BREAKS = [0.2, 0.4, 0.6, 0.8];
 
 export const POWER_COLOURS = ["#e2e8f0", "#bfdbfe", "#60a5fa", "#2563eb", "#1e3a8a"];
 
 export const POWER_LEGEND = [
-  { label: "0%+", colour: POWER_COLOURS[0] },
-  { label: "20%+", colour: POWER_COLOURS[1] },
-  { label: "40%+", colour: POWER_COLOURS[2] },
-  { label: "60%+", colour: POWER_COLOURS[3] },
-  { label: "80%+", colour: POWER_COLOURS[4] },
+  { label: "< 0.20", colour: POWER_COLOURS[0] },
+  { label: "0.20+", colour: POWER_COLOURS[1] },
+  { label: "0.40+", colour: POWER_COLOURS[2] },
+  { label: "0.60+", colour: POWER_COLOURS[3] },
+  { label: "0.80+", colour: POWER_COLOURS[4] },
 ];
 
+/** `power` is a fraction 0-1. */
 export function powerColour(power: number): string {
   for (let i = 0; i < POWER_BREAKS.length; i++) {
     if (power < POWER_BREAKS[i]) return POWER_COLOURS[i];
@@ -108,17 +139,6 @@ export function powerColour(power: number): string {
   return POWER_COLOURS[POWER_COLOURS.length - 1];
 }
 
-// --- sampling options -------------------------------------------------------
-
-export const SAMPLING_YEARS = [5, 10, 20, 30];
-
-export const SAMPLING_FREQUENCIES = [
-  { value: 4, label: "Quarterly" },
-  { value: 12, label: "Monthly" },
-  { value: 26, label: "Fortnightly" },
-  { value: 52, label: "Weekly" },
-];
-
-export function frequencyLabel(samplesPerYear: number): string {
-  return SAMPLING_FREQUENCIES.find((f) => f.value === samplesPerYear)?.label ?? `${samplesPerYear}/yr`;
+export function formatPower(power: number): string {
+  return power.toFixed(2);
 }

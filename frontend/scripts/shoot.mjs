@@ -1,6 +1,6 @@
 /**
  * Screenshot the running app and report console errors.
- * Usage: npm start (in another shell), then `node scripts/shoot.mjs [outDir]`
+ * Usage: npm run dev (in another shell), then `node scripts/shoot.mjs [outDir]`
  * Drives the installed Edge — no Playwright browser download needed.
  */
 import { chromium } from "playwright";
@@ -8,6 +8,9 @@ import { chromium } from "playwright";
 const OUT = process.argv[2] ?? "screenshots";
 const BASE = process.env.BASE_URL ?? "http://localhost:3000";
 const HAS_CANVAS = "() => document.querySelectorAll('canvas').length > 0";
+
+// A well-monitored catchment in the real data: 106 TN and 107 TP site records.
+const CATCHMENT = "5060084180";
 
 const browser = await chromium.launch({ channel: "msedge" });
 const page = await browser.newPage({ viewport: { width: 1600, height: 1000 } });
@@ -19,7 +22,7 @@ page.on("pageerror", (e) => errors.push(`PAGEERROR: ${e.message}`));
 async function shot(url, file, waitFor) {
   await page.goto(`${BASE}${url}`, { waitUntil: "domcontentloaded" });
   if (waitFor) await page.waitForFunction(waitFor, null, { timeout: 20000 });
-  await page.waitForTimeout(3500); // let map tiles settle
+  await page.waitForTimeout(4000); // let map tiles and the power slice settle
   await page.screenshot({ path: `${OUT}/${file}` });
   console.log(`saved ${file}`);
 }
@@ -32,24 +35,26 @@ async function panelText(label) {
   console.log(`\n--- ${label} ---\n${text}`);
 }
 
-// Landing page now embeds the tool, so it needs the map to be up before capture.
-await shot("/", "01_landing.png", HAS_CANVAS);
-await page.screenshot({ path: `${OUT}/01_landing_full.png`, fullPage: true });
-console.log("saved 01_landing_full.png");
+await shot("/tool", "01_world.png", HAS_CANVAS);
+await panelText("world, TN monthly 20yr 30%");
 
-await shot("/tool?catchment=waikato", "03_waikato.png", HAS_CANVAS);
-await panelText("Waikato, 10yr monthly, 20%");
+await shot(`/tool?catchment=${CATCHMENT}`, "02_catchment.png", HAS_CANVAS);
+await panelText(`catchment ${CATCHMENT}, TN monthly 20yr 30%`);
 
-// Weakest design must visibly drop the power figures.
-await page.getByRole("button", { name: "5 yr" }).click();
-await page.getByRole("button", { name: "Quarterly" }).click();
-await page.waitForTimeout(1200);
-await page.screenshot({ path: `${OUT}/04_waikato_weak.png` });
-console.log("saved 04_waikato_weak.png");
-await panelText("Waikato, 5yr quarterly, 20%");
+// A site inside the open catchment — the marker nearest the map centre.
+await page.locator("path.leaflet-interactive, canvas").first().click({ position: { x: 700, y: 500 } });
+await page.waitForTimeout(1500);
+await page.screenshot({ path: `${OUT}/03_site.png` });
+console.log("saved 03_site.png");
+await panelText("after clicking near a site");
 
-await shot("/tool?catchment=rhine", "05_rhine.png", HAS_CANVAS);
-await panelText("Rhine, 10yr monthly, 20%");
+// The weakest design must visibly drop the power figures.
+await page.getByRole("button", { name: "Quarterly", exact: true }).click();
+await page.getByRole("button", { name: "5", exact: true }).click();
+await page.waitForTimeout(2500);
+await page.screenshot({ path: `${OUT}/04_weak.png` });
+console.log("saved 04_weak.png");
+await panelText("quarterly, 5 yr, 30%");
 
 console.log("\nconsole errors:", errors.length ? errors : "none");
 await browser.close();

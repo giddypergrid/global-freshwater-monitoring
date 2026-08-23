@@ -9,31 +9,32 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import Flag from "@/components/tool/Flag";
-import type { CatchmentSummary, CountrySummary } from "@/lib/types";
+import type { CatchmentSummary, RegionSummary } from "@/lib/types";
 
 interface Props {
-  countries: CountrySummary[];
+  regions: RegionSummary[];
   catchments: CatchmentSummary[];
-  country: string;
+  region: string;
   selectedId: string | null;
-  onCountryChange: (country: string) => void;
+  onRegionChange: (region: string) => void;
   onSelect: (id: string) => void;
 }
 
+const MAX_VISIBLE = 200;
+
 /**
- * Country first, then catchment — by map click or from here, kept in sync.
+ * Region first, then catchment, by map click or from here, kept in sync.
  *
- * The catchment field is a combobox: it shows the current selection, opens its list on
- * focus, and re-filters as you type. Typing searches every country (by catchment or
- * country name), so "germ" or "rhine" both reach the Rhine without changing country first.
+ * HydroBASINS carries no place names, so a catchment is identified by its HYBAS_ID and
+ * the list is ordered by how much monitoring sits inside it. Typing searches every
+ * region by id or region name.
  */
 export default function CatchmentPicker({
-  countries,
+  regions,
   catchments,
-  country,
+  region,
   selectedId,
-  onCountryChange,
+  onRegionChange,
   onSelect,
 }: Props) {
   const [open, setOpen] = useState(false);
@@ -41,27 +42,29 @@ export default function CatchmentPicker({
   const [text, setText] = useState("");
   const boxRef = useRef<HTMLDivElement>(null);
 
-  const countryItems = useMemo(
-    () => Object.fromEntries(countries.map((c) => [c.name, c.name])),
-    [countries],
+  const regionItems = useMemo(
+    () => Object.fromEntries(regions.map((r) => [r.name, r.name])),
+    [regions],
   );
 
   const selected = catchments.find((c) => c.id === selectedId) ?? null;
 
   // Showing the selection unless the user is actively typing over it.
-  const inputValue = typing ? text : (selected?.name ?? "");
+  const inputValue = typing ? text : (selected?.id ?? "");
   const term = typing ? text.trim().toLowerCase() : "";
 
   const visible = useMemo(() => {
     const pool = term
       ? catchments.filter(
-          (c) =>
-            c.name.toLowerCase().includes(term) || c.country.toLowerCase().includes(term),
+          (c) => c.id.includes(term) || c.region.toLowerCase().includes(term),
         )
-      : catchments.filter((c) => c.country === country);
+      : region
+        ? catchments.filter((c) => c.region === region)
+        : catchments; // no region yet, so the whole world is on offer
 
-    return [...pool].sort((a, b) => b.areaKm2 - a.areaKm2);
-  }, [catchments, country, term]);
+    // 1,177 rows would be a scroll to nowhere; the busiest catchments come first.
+    return [...pool].sort((a, b) => b.records - a.records).slice(0, MAX_VISIBLE);
+  }, [catchments, region, term]);
 
   useEffect(() => {
     if (!open) return;
@@ -85,29 +88,23 @@ export default function CatchmentPicker({
   return (
     <section className="space-y-3">
       <div className="space-y-1.5">
-        <label className="text-xs font-medium text-slate-600">Country</label>
+        <label className="text-xs font-medium text-slate-700">Region</label>
         <Select
-          items={countryItems}
-          value={country}
+          items={regionItems}
+          value={region}
           onValueChange={(value) => {
-            onCountryChange(value as string);
+            onRegionChange(value as string);
             setTyping(false);
             setText("");
           }}
         >
           <SelectTrigger className="w-full">
-            <span className="flex items-center gap-2">
-              <Flag country={country} />
-              <SelectValue />
-            </span>
+            <SelectValue placeholder="Anywhere · click the map" />
           </SelectTrigger>
           <SelectContent alignItemWithTrigger={false} align="start">
-            {countries.map((c) => (
-              <SelectItem key={c.name} value={c.name}>
-                <span className="flex items-center gap-2">
-                  <Flag country={c.name} />
-                  {c.name} ({c.catchmentCount})
-                </span>
+            {regions.map((r) => (
+              <SelectItem key={r.name} value={r.name}>
+                {r.name} ({r.catchments} catchments, {r.sites.toLocaleString()} sites)
               </SelectItem>
             ))}
           </SelectContent>
@@ -115,7 +112,7 @@ export default function CatchmentPicker({
       </div>
 
       <div className="space-y-1.5" ref={boxRef}>
-        <label className="text-xs font-medium text-slate-600">Catchment</label>
+        <label className="text-xs font-medium text-slate-700">Catchment (HYBAS_ID)</label>
         <div className="relative">
           <Search className="pointer-events-none absolute top-2.5 left-2.5 size-3.5 text-slate-400" />
           <input
@@ -133,8 +130,8 @@ export default function CatchmentPicker({
               }
               if (e.key === "Enter" && visible.length > 0) pick(visible[0].id);
             }}
-            placeholder="Search any country or catchment"
-            className="h-9 w-full rounded-md border border-slate-300 bg-white pr-8 pl-8 text-sm placeholder:text-slate-400 focus:border-slate-500 focus:ring-2 focus:ring-slate-200 focus:outline-none"
+            placeholder="Search by id or region"
+            className="h-9 w-full rounded-md border border-slate-300 bg-white pr-8 pl-8 font-mono text-sm placeholder:font-sans placeholder:text-slate-400 focus:border-slate-500 focus:ring-2 focus:ring-slate-200 focus:outline-none"
           />
           <ChevronDown
             className={`pointer-events-none absolute top-2.5 right-2.5 size-3.5 text-slate-400 transition-transform ${
@@ -146,7 +143,6 @@ export default function CatchmentPicker({
             <ul className="absolute z-20 mt-1 max-h-56 w-full divide-y divide-slate-100 overflow-y-auto rounded-md border border-slate-300 bg-white shadow-lg">
               {visible.map((c) => {
                 const active = c.id === selectedId;
-                const elsewhere = c.country !== country;
                 return (
                   <li key={c.id}>
                     <button
@@ -158,24 +154,21 @@ export default function CatchmentPicker({
                           : "text-slate-700 hover:bg-slate-50"
                       }`}
                     >
-                      <span className="flex min-w-0 items-center gap-2">
-                        {elsewhere && <Flag country={c.country} />}
-                        <span className="truncate">{c.name}</span>
-                      </span>
+                      <span className="truncate font-mono text-xs">{c.id}</span>
                       <span
                         className={`shrink-0 text-xs tabular-nums ${
-                          active ? "text-slate-300" : "text-slate-400"
+                          active ? "text-slate-300" : "text-slate-500"
                         }`}
                       >
-                        {c.areaKm2.toLocaleString()} km²
+                        {c.records} sites
                       </span>
                     </button>
                   </li>
                 );
               })}
               {visible.length === 0 && (
-                <li className="px-3 py-6 text-center text-sm text-slate-400">
-                  Nothing matches “{text}”.
+                <li className="px-3 py-6 text-center text-sm text-slate-500">
+                  No match for “{text}”.
                 </li>
               )}
             </ul>
@@ -183,8 +176,8 @@ export default function CatchmentPicker({
         </div>
 
         {!open && !selected && (
-          <p className="text-[11px] text-slate-400">
-            Pick one here or click a catchment on the map.
+          <p className="text-[11px] text-slate-500">
+            Click any catchment on the map, or search here.
           </p>
         )}
       </div>
