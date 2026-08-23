@@ -4,26 +4,48 @@ import CatchmentPicker from "./CatchmentPicker";
 import QueryControls from "./QueryControls";
 import ResultsSummary from "./ResultsSummary";
 import DownloadBlock from "./DownloadBlock";
-import type { CatchmentDetail, DataIndex, Query, Selection } from "@/lib/types";
+import type { SiteResult } from "@/lib/summary";
+import type { CatchmentSummary, DataIndex, Query } from "@/lib/types";
 
 interface Props {
   index: DataIndex;
-  country: string;
+  region: string;
   selectedId: string | null;
-  detail: CatchmentDetail | null;
+  catchment: CatchmentSummary | null;
   query: Query;
-  selection: Selection | null;
+  results: SiteResult[];
+  selected: SiteResult | null;
   loading: boolean;
   showSites: boolean;
-  onCountryChange: (country: string) => void;
+  onRegionChange: (region: string) => void;
   onSelectCatchment: (id: string) => void;
   onQueryChange: (query: Query) => void;
   onToggleSites: (show: boolean) => void;
+  onClearSite: () => void;
+}
+
+/** Counts follow the drill-down: the open catchment, else the region, else everything. */
+function scopeCounts(index: DataIndex, region: string, catchment: CatchmentSummary | null) {
+  if (catchment) {
+    return { counts: { tn: catchment.tn, tp: catchment.tp }, label: `catchment ${catchment.id}` };
+  }
+  if (region) {
+    const rows = index.catchments.filter((c) => c.region === region);
+    return {
+      counts: {
+        tn: rows.reduce((sum, c) => sum + c.tn, 0),
+        tp: rows.reduce((sum, c) => sum + c.tp, 0),
+      },
+      label: region,
+    };
+  }
+  const [tn, tp] = index.nutrients;
+  return { counts: { tn: tn.sites, tp: tp.sites }, label: "all regions" };
 }
 
 function SectionHeading({ children }: { children: React.ReactNode }) {
   return (
-    <h2 className="mb-3 text-[11px] font-semibold tracking-wider text-slate-400 uppercase">
+    <h2 className="mb-3 text-[11px] font-semibold tracking-wider text-slate-500 uppercase">
       {children}
     </h2>
   );
@@ -31,20 +53,21 @@ function SectionHeading({ children }: { children: React.ReactNode }) {
 
 export default function ControlPanel({
   index,
-  country,
+  region,
   selectedId,
-  detail,
+  catchment,
   query,
-  selection,
+  results,
+  selected,
   loading,
   showSites,
-  onCountryChange,
+  onRegionChange,
   onSelectCatchment,
   onQueryChange,
   onToggleSites,
+  onClearSite,
 }: Props) {
-  const indicatorLabel =
-    index.indicators.find((i) => i.key === query.indicator)?.label ?? query.indicator;
+  const { counts, label: scopeLabel } = scopeCounts(index, region, catchment);
 
   return (
     <div className="flex h-full flex-col overflow-y-auto bg-white">
@@ -52,23 +75,25 @@ export default function ControlPanel({
         <div>
           <SectionHeading>Location</SectionHeading>
           <CatchmentPicker
-            countries={index.countries}
+            regions={index.regions}
             catchments={index.catchments}
-            country={country}
+            region={region}
             selectedId={selectedId}
-            onCountryChange={onCountryChange}
+            onRegionChange={onRegionChange}
             onSelect={onSelectCatchment}
           />
         </div>
 
         <div className="border-t border-slate-200 pt-5">
-          <SectionHeading>Monitoring scenario</SectionHeading>
+          <SectionHeading>Monitoring design</SectionHeading>
           <QueryControls
-            indicators={index.indicators}
+            index={index}
             query={query}
+            counts={counts}
+            scopeLabel={scopeLabel}
             onChange={onQueryChange}
           />
-          <label className="mt-4 flex items-center gap-2 text-xs text-slate-600">
+          <label className="mt-4 flex items-center gap-2 text-xs text-slate-700">
             <input
               type="checkbox"
               checked={showSites}
@@ -80,19 +105,33 @@ export default function ControlPanel({
         </div>
 
         <div className="border-t border-slate-200 pt-5">
-          <SectionHeading>Results</SectionHeading>
-          {loading && <p className="text-sm text-slate-400">Loading catchment…</p>}
-          {!loading && !detail && (
-            <p className="text-sm text-slate-400">
-              Select a catchment from the list or click one on the map.
-            </p>
-          )}
-          {!loading && detail && (
-            <ResultsSummary detail={detail} query={query} selection={selection} />
+          <SectionHeading>{selected ? "Site result" : "Catchment result"}</SectionHeading>
+          {loading && <p className="text-sm text-slate-500">Loading power lookup…</p>}
+          {!loading && (
+            <ResultsSummary
+              index={index}
+              catchment={catchment}
+              query={query}
+              results={results}
+              selected={selected}
+              onClearSite={onClearSite}
+            />
           )}
         </div>
 
-        <DownloadBlock detail={detail} query={query} indicatorLabel={indicatorLabel} />
+        <DownloadBlock
+          results={results}
+          query={query}
+          scope={selectedId ?? "catchment"}
+        />
+
+        <p className="text-[11px] leading-[1.7] text-slate-600">
+          One-sided test of a negative trend, alpha {index.alpha}. Power is a
+          monitoring-design calculation, not a prediction that the reduction will occur.
+          Data generated {index.generated} from {index.totals.records.toLocaleString()}{" "}
+          site–nutrient records across {index.totals.catchments.toLocaleString()}{" "}
+          catchments.
+        </p>
       </div>
     </div>
   );

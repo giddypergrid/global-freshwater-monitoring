@@ -1,6 +1,5 @@
 "use client";
 
-import { useMemo } from "react";
 import {
   Select,
   SelectContent,
@@ -9,24 +8,38 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
-import { SAMPLING_FREQUENCIES, SAMPLING_YEARS } from "@/lib/power";
-import type { Indicator, Query } from "@/lib/types";
+import {
+  DURATIONS,
+  FREQUENCIES,
+  frequencyOption,
+  plannedSampleCount,
+} from "@/lib/power";
+import type { DataIndex, NutrientKey, Query } from "@/lib/types";
 
 interface Props {
-  indicators: Indicator[];
+  index: DataIndex;
   query: Query;
+  /** Site counts for whatever is selected: catchment, else region, else the world. */
+  counts: { tn: number; tp: number };
+  scopeLabel: string;
   onChange: (query: Query) => void;
 }
 
-interface SegmentedProps<T extends number> {
+interface SegmentedProps<T extends string | number> {
   options: { value: T; label: string }[];
   value: T;
   onChange: (value: T) => void;
+  columns?: string;
 }
 
-function Segmented<T extends number>({ options, value, onChange }: SegmentedProps<T>) {
+function Segmented<T extends string | number>({
+  options,
+  value,
+  onChange,
+  columns,
+}: SegmentedProps<T>) {
   return (
-    <div className="grid grid-flow-col gap-1 rounded-md bg-slate-100 p-1">
+    <div className={`grid gap-1 rounded-md bg-slate-100 p-1 ${columns ?? "grid-flow-col"}`}>
       {options.map((option) => (
         <button
           key={option.value}
@@ -45,69 +58,87 @@ function Segmented<T extends number>({ options, value, onChange }: SegmentedProp
   );
 }
 
-/** The monitoring scenario: what is measured, how often, for how long, and how big a change. */
-export default function QueryControls({ indicators, query, onChange }: Props) {
-  const indicatorItems = useMemo(
-    () => Object.fromEntries(indicators.map((i) => [i.key, i.label])),
-    [indicators],
-  );
+/** The monitoring scenario: what is measured, how often, for how long, and how big a cut. */
+export default function QueryControls({
+  index,
+  query,
+  counts,
+  scopeLabel,
+  onChange,
+}: Props) {
+  const nutrientItems = Object.fromEntries(index.nutrients.map((n) => [n.key, n.label]));
+  const frequency = frequencyOption(query.frequency);
+  const samples = plannedSampleCount(query.years, frequency.samplesPerYear);
 
   return (
     <section className="space-y-4">
       <div className="space-y-1.5">
-        <label className="text-xs font-medium text-slate-600">Indicator</label>
+        <label className="text-xs font-medium text-slate-700">Nutrient</label>
         <Select
-          items={indicatorItems}
-          value={query.indicator}
-          onValueChange={(value) => onChange({ ...query, indicator: value as string })}
+          items={nutrientItems}
+          value={query.nutrient}
+          onValueChange={(value) =>
+            onChange({ ...query, nutrient: value as NutrientKey })
+          }
         >
           <SelectTrigger className="w-full">
             <SelectValue />
           </SelectTrigger>
           <SelectContent alignItemWithTrigger={false} align="start">
-            {indicators.map((i) => (
-              <SelectItem key={i.key} value={i.key}>
-                {i.label}
+            {index.nutrients.map((n) => (
+              <SelectItem key={n.key} value={n.key}>
+                {n.label} · {counts[n.key].toLocaleString()} sites
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
+        <p className="text-[11px] text-slate-500">
+          Site counts shown for {scopeLabel}.
+        </p>
       </div>
 
       <div className="space-y-1.5">
-        <label className="text-xs font-medium text-slate-600">Sampling duration</label>
+        <label className="text-xs font-medium text-slate-700">Sampling frequency</label>
         <Segmented
-          options={SAMPLING_YEARS.map((y) => ({ value: y, label: `${y} yr` }))}
+          options={FREQUENCIES.map((f) => ({ value: f.key, label: f.label }))}
+          value={query.frequency}
+          onChange={(key) => onChange({ ...query, frequency: key })}
+          columns="grid-cols-3"
+        />
+        {frequency.extrapolated && (
+          <p className="text-[11px] text-amber-700">
+            {frequency.label} extrapolates the fitted temporal correlation below the
+            interval most records were collected at. Treat as a conditional model
+            projection.
+          </p>
+        )}
+      </div>
+
+      <div className="space-y-1.5">
+        <label className="text-xs font-medium text-slate-700">Monitoring duration</label>
+        <Segmented
+          options={DURATIONS.map((y) => ({ value: y, label: `${y}` }))}
           value={query.years}
           onChange={(years) => onChange({ ...query, years })}
+          columns="grid-cols-5"
         />
-      </div>
-
-      <div className="space-y-1.5">
-        <label className="text-xs font-medium text-slate-600">Sampling frequency</label>
-        <Segmented
-          options={SAMPLING_FREQUENCIES}
-          value={query.samplesPerYear}
-          onChange={(samplesPerYear) => onChange({ ...query, samplesPerYear })}
-        />
-        <p className="text-[11px] text-slate-400 tabular-nums">
-          {(query.years * query.samplesPerYear).toLocaleString()} samples in total
+        <p className="text-[11px] text-slate-500 tabular-nums">
+          {query.years} years · {samples.toLocaleString()} planned samples, assuming no
+          missed visits
         </p>
       </div>
 
       <div className="space-y-2">
         <div className="flex items-baseline justify-between">
-          <label className="text-xs font-medium text-slate-600">
-            Water quality improvement
-          </label>
+          <label className="text-xs font-medium text-slate-700">Target reduction</label>
           <span className="text-sm font-semibold text-slate-900 tabular-nums">
             {query.reduction}%
           </span>
         </div>
         <Slider
           min={5}
-          max={80}
-          step={5}
+          max={95}
+          step={1}
           value={query.reduction}
           onValueChange={(value) =>
             onChange({
@@ -116,8 +147,9 @@ export default function QueryControls({ indicators, query, onChange }: Props) {
             })
           }
         />
-        <p className="text-[11px] text-slate-400">
-          The true drop in concentration the monitoring would need to pick up.
+        <p className="text-[11px] text-slate-500">
+          The true drop in concentration, reached at the end of the monitoring period.
+          Not a prediction that it will happen.
         </p>
       </div>
     </section>
