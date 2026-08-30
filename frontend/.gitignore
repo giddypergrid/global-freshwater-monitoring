@@ -46,3 +46,7 @@ next-env.d.ts
 # Kept out of the repository so it can be public; uploaded to Vercel directly.
 # See ../.vercelignore, which is what keeps it in the deploy.
 /public/data/
+
+# Local editor and assistant notes, never published
+CLAUDE.md
+AGENTS.md
