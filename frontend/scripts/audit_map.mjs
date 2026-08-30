@@ -76,9 +76,13 @@ for (const [name, lng, lat] of [
   await page.mouse.move(t.x, t.y);
   await page.waitForTimeout(400);
   const tip = await tipText();
+  // A snapped click still offers the continent. Since 27 Aug 2026 a cursor that lands
+  // inside a polygon names that catchment instead, because the click now opens it.
+  const offersSomething =
+    /click to zoom in/.test(tip ?? "") || /site records/.test(tip ?? "");
   check(
-    `${name} offers a region`,
-    (await cursorAt(t.x, t.y)) === "pointer" && /click to zoom in/.test(tip ?? ""),
+    `${name} offers a target`,
+    (await cursorAt(t.x, t.y)) === "pointer" && offersSomething,
     JSON.stringify(tip),
   );
 }
@@ -86,7 +90,7 @@ const kansas = await screenPointFor(page, -98, 39);
 await page.mouse.click(kansas.x, kansas.y);
 await page.waitForTimeout(2500);
 check(
-  "clicking empty land selects its region",
+  "clicking empty land reaches North America",
   (await regionBox())?.includes("North America"),
   JSON.stringify(await regionBox()),
 );

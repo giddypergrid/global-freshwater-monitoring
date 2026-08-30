@@ -12,9 +12,14 @@ export function screenPointFor(page, lng, lat) {
     ([lng, lat]) => {
       const tile = document.querySelector("img.leaflet-tile-loaded");
       if (!tile) return null;
-      const m = tile.src.match(/\/(\d+)\/(\d+)\/(\d+)(?:@2x)?\.png/);
-      if (!m) return null;
-      const [z, tx, ty] = [+m[1], +m[2], +m[3]];
+      // Two tile URL shapes: {z}/{x}/{y}.png as CARTO and OpenStreetMap serve it, and
+      // ArcGIS /tile/{z}/{y}/{x} with no extension, which is row before column.
+      const arc = tile.src.match(/\/tile\/(\d+)\/(\d+)\/(\d+)(?:\?|$)/);
+      const xyz = tile.src.match(/\/(\d+)\/(\d+)\/(\d+)(?:@2x)?\.png/);
+      if (!arc && !xyz) return null;
+      const [z, tx, ty] = arc
+        ? [+arc[1], +arc[3], +arc[2]]
+        : [+xyz[1], +xyz[2], +xyz[3]];
       const size = 256 * 2 ** z;
       const wx = ((lng + 180) / 360) * size;
       const rad = (lat * Math.PI) / 180;
