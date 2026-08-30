@@ -7,6 +7,7 @@ import type {
   NutrientKey,
   PowerSlice,
   RawSite,
+  RiverShard,
   Site,
   SiteFile,
 } from "./types";
@@ -75,6 +76,16 @@ export function loadSites(nutrient: NutrientKey): Promise<Site[]> {
 export function loadPower(nutrient: NutrientKey, frequency: string): Promise<PowerSlice> {
   return once(`power-${nutrient}-${frequency}`, () =>
     getJson<PowerSlice>(`/data/power/${nutrient}-${frequency}.json`),
+  );
+}
+
+/**
+ * The river reaches inside one catchment. Fetched only when a catchment is opened, so the
+ * 1,177 shards never enter the first-visit cost.
+ */
+export function loadRivers(hybasId: string): Promise<RiverShard> {
+  return once(`rivers-${hybasId}`, () =>
+    getJson<RiverShard>(`/data/rivers/${hybasId}.json`),
   );
 }
 

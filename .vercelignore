@@ -1,0 +1,14 @@
+# Vercel reads this INSTEAD of .gitignore when deciding what to upload.
+#
+# That is the whole reason this file exists. `frontend/public/data/` is gitignored so the
+# repository can be public without carrying the dataset, but the deployed site still has to
+# serve it. Without this file the CLI would fall back to .gitignore and upload a site with
+# no data.
+#
+# So: never add frontend/public/data/ here.
+
+node_modules
+.next
+screenshots
+tsconfig.tsbuildinfo
+.vercel
