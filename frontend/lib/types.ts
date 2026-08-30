@@ -120,6 +120,24 @@ export interface PowerSlice {
   se: Record<string, number[]>;
 }
 
+/** One catchment's river reaches, built by scripts/build_river_network.py. */
+export interface RiverShard {
+  /** Smallest Strahler order kept for this catchment, after the point budget was applied. */
+  minOrder: number;
+  reaches: number;
+  /** `[strahler_order, [lon, lat, lon, lat, ...]]` per reach, short to keep the file small. */
+  r: [number, number[]][];
+}
+
+/** Which catchments have a river shard, so the app never fetches a file that is absent. */
+export interface RiverIndex {
+  source: string;
+  attribution: string;
+  maxPointsPerCatchment: number;
+  coordinateDecimals: number;
+  catchments: Record<string, { reaches: number; minOrder: number; bytes: number }>;
+}
+
 export interface CatchmentOutlineProps {
   id: string;
   n: number;

@@ -4,8 +4,11 @@
 Run:  python scripts/acceptance.py
 Exit code 0 if every runnable test passes.
 
-Test 1 needs the researcher's power_details(), which was not included in the handover,
-so it is reported as unrunnable rather than skipped quietly.
+Test 1 needs the researcher's power_details(), which was missing from the original
+handover. Rich McDowell supplied it on 25 Aug 2026 as power_details_reference_v1.py,
+alongside site_option2_power.csv, the fitted site parameters it reads. That CSV is base
+data and stays outside this repository, so the test reports itself unrunnable rather than
+failing when the file is absent.
 """
 
 from __future__ import annotations
@@ -23,6 +26,9 @@ from scipy.stats import norm
 
 ROOT = Path(__file__).resolve().parent.parent
 HANDOVER = ROOT.parent.parent / "Handover"
+# Rich McDowell's 25 Aug 2026 reference module and the fitted site parameters it needs.
+# Base data, so it sits beside the handover rather than inside the repository.
+REFERENCE = ROOT.parent.parent / "acceptance"
 DATA = ROOT / "public" / "data"
 Z_ALPHA = 1.6448536269514722
 RNG = np.random.default_rng(20260823)
@@ -50,12 +56,36 @@ def browser_values() -> dict:
 
 
 # --- 1 ------------------------------------------------------------------------------
-def test_1() -> None:
+def test_1(n: int = 200) -> None:
+    """Recompute the delivered SE and power through the researcher's power_details()."""
+    source = REFERENCE / "site_option2_power.csv"
+    if not source.exists():
+        record(
+            "1. reproduce power_details() values",
+            None,
+            f"{source.name} holds the fitted site parameters and is base data, so it is\n"
+            "not in this repository and the test cannot run from a clone alone.",
+        )
+        return
+
+    sys.path.insert(0, str(ROOT / "scripts"))
+    from power_details_reference_v1 import validate_lookup
+
+    out = validate_lookup(
+        source,
+        HANDOVER / "monitored_site_slope_se_lookup.csv",
+        rows=n,
+        seed=20260825,
+    )
+    ok = out["all_frequencies_pass_1e_12"] and out["monthly_power_details_pass_1e_12"]
     record(
-        "1. reproduce power_details() values",
-        None,
-        "power_details() is not in the handover, so this cannot be run here.\n"
-        "Test 2 checks the same numbers against the delivered lookup instead.",
+        f"1. reproduce power_details() values on {n} random lookup rows",
+        ok,
+        f"reference module {out['version']}, {out['monthly_rows_checked']} of "
+        f"{out['rows_checked']} sampled rows are monthly\n"
+        f"max absolute SE difference {out['max_absolute_se_difference']:.3e}\n"
+        f"max absolute power difference {out['max_absolute_power_difference']:.3e}"
+        " (limit 1e-12)",
     )
 
 

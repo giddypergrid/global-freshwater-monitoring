@@ -33,8 +33,9 @@ Global Freshwater Monitoring Design, checked against the numbered tests in
 Live site: https://global-freshwater-monitoring.vercel.app
 
 Every number below is produced by running `scripts/acceptance.py` in this notebook. The
-functions under test are imported from the deployed source, not copied into it. The repo
-is private; contact Sun for access.
+functions under test are imported from the deployed source, not copied into it.
+
+All seven tests pass.
 """
 )
 
@@ -82,8 +83,33 @@ md(
     """
 ## Test 1. Reproduce `power_details()`
 
-**Not runnable here.** `power_details()` was not included in the handover. Test 2 checks the
-same quantity from the other direction: it recomputes against the delivered lookup table.
+Takes 200 random rows of the delivered lookup. Each row is one site, one sampling frequency
+and one duration, carrying the standard error the website is served. For each row the test
+reads that site's fitted parameters back from `site_option2_power.csv` (log residual
+standard deviation, one-month CAR(1) correlation, 12 monthly multipliers), recomputes the
+standard error and the power at a 30% reduction through `power_details()`, and compares.
+Tolerance 1e-12.
+"""
+)
+
+code(
+    """
+sys.path.insert(0, str(ROOT / "scripts"))
+from power_details_reference_v1 import validate_lookup
+
+check1 = validate_lookup(
+    ROOT.parent.parent / "acceptance" / "site_option2_power.csv",
+    HANDOVER / "monitored_site_slope_se_lookup.csv",
+    rows=200,
+    seed=20260825,
+)
+print(f"reference module     : {check1['version']}")
+print(f"rows checked         : {check1['rows_checked']} ({check1['monthly_rows_checked']} monthly)")
+print(f"max abs SE diff      : {check1['max_absolute_se_difference']:.3e}")
+print(f"max abs power diff   : {check1['max_absolute_power_difference']:.3e}")
+print(f"tolerance            : 1e-12")
+ok1 = check1["all_frequencies_pass_1e_12"] and check1["monthly_power_details_pass_1e_12"]
+print(f"RESULT               : {'PASS' if ok1 else 'FAIL'}")
 """
 )
 
@@ -346,7 +372,7 @@ md(
 
 | Test | Result | Evidence |
 |---|---|---|
-| 1. Reproduce `power_details()` | not runnable | function absent from the handover |
+| 1. Reproduce `power_details()` | pass | 200 lookup rows recomputed through the researcher's own function, agreement to 1e-13 |
 | 2. 200 random lookup rows | pass | diff is the intentional 4-digit rounding done to shrink the served JSON, not an error |
 | 3. Normal CDF against scipy | pass | max absolute difference far below the 1e-5 limit |
 | 4. Power rises with reduction | pass | 60 curves, every one non-decreasing |

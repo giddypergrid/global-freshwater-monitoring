@@ -39,11 +39,14 @@ export default function SiteLayer({
     selectRef.current = onSelect;
   }, [onSelect]);
 
-  // Until a catchment is open the sites are context only, so the region's own sites are
-  // all that is worth drawing. Once it is open, its sites come first and always draw.
+  // The opening world view is a catchment picker, so it carries no sites: spraying 15,313
+  // markers over it invites the user to zoom to a site and then click a catchment, which
+  // is the trip Mike Kittridge reported on 25 Aug 2026. Once a region is chosen its own
+  // sites are drawn as context. Once a catchment is open, its sites come first and always
+  // draw.
   const ordered = useMemo(() => {
     if (!selectedCatchmentId) {
-      return region ? results.filter((r) => r.site.region === region) : results;
+      return region ? results.filter((r) => r.site.region === region) : [];
     }
     return [...results].sort((a, b) => {
       const inA = a.site.hybasId === selectedCatchmentId ? 0 : 1;

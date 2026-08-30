@@ -206,15 +206,23 @@ export default function CatchmentOutlines({
       // so the click never has to be near anything.
       const regionMode = !regionRef.current;
       const snap = nearest(point);
-      const id =
-        exactId.current ?? (regionMode || snap.dist <= SNAP_PX ? snap.id : null);
-      return { id, home: id ? (regionOf.get(id) ?? null) : null, regionMode };
+      const exact = exactId.current;
+      const id = exact ?? (regionMode || snap.dist <= SNAP_PX ? snap.id : null);
+      return {
+        id,
+        home: id ? (regionOf.get(id) ?? null) : null,
+        regionMode,
+        // The cursor is inside the polygon, so the user is aiming at this catchment and
+        // not at the continent it happens to sit in.
+        exact: exact !== null,
+      };
     }
 
     function onMove(event: L.LeafletMouseEvent) {
       const target = targetAt(event.containerPoint);
-      // In region mode the click takes a continent, so highlighting one polygon would lie.
-      setHover(target.regionMode ? null : target.id);
+      // A snapped click in region mode takes a continent, so highlighting one polygon
+      // would lie about what happens next. An exact hit does open that polygon.
+      setHover(target.regionMode && !target.exact ? null : target.id);
 
       if (!target.id || !target.home) {
         map.getContainer().style.cursor = "";
@@ -225,11 +233,13 @@ export default function CatchmentOutlines({
 
       const away = regionRef.current && target.home !== regionRef.current;
       tip.setContent(
-        target.regionMode
-          ? `${target.home} · click to zoom in`
-          : away
-            ? `${target.home} · click to switch region`
-            : `${target.id} · ${recordsOf.get(target.id) ?? 0} site records`,
+        target.exact
+          ? `${target.id} · ${recordsOf.get(target.id) ?? 0} site records`
+          : target.regionMode
+            ? `${target.home} · click to zoom in`
+            : away
+              ? `${target.home} · click to switch region`
+              : `${target.id} · ${recordsOf.get(target.id) ?? 0} site records`,
       );
       tip.setLatLng(event.latlng);
       if (!map.hasLayer(tip)) tip.addTo(map);
@@ -244,8 +254,15 @@ export default function CatchmentOutlines({
     function onClick(event: L.LeafletMouseEvent) {
       const target = targetAt(event.containerPoint);
       if (!target.id || !target.home) return;
-      // Reaching outside the active region means the user is changing region, not opening
-      // a catchment the picker is not listing.
+      // An exact hit opens that catchment wherever it sits, and the region follows it.
+      // Zooming the user back out to a continent they had already zoomed past was the
+      // behaviour Mike Kittridge reported on 25 Aug 2026.
+      if (target.exact) {
+        onSelect(target.id);
+        return;
+      }
+      // A snapped click from far out is still a region pick: at world zoom the median
+      // catchment is under 3 px across, so the polygon under the cursor means little.
       if (target.regionMode || (regionRef.current && target.home !== regionRef.current)) {
         if (target.home !== regionRef.current) onJumpRegion(target.home);
         return;

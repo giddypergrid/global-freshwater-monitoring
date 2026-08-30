@@ -41,3 +41,8 @@ yarn-error.log*
 next-env.d.ts
 
 .vercel
+
+# Built by scripts/build_handover_data.py and scripts/build_river_network.py.
+# Kept out of the repository so it can be public; uploaded to Vercel directly.
+# See ../.vercelignore, which is what keeps it in the deploy.
+/public/data/

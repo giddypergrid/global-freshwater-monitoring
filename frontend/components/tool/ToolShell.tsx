@@ -135,26 +135,20 @@ export default function ToolShell() {
   );
 
   /**
-   * The drill-down is strict: region, then catchment, then site. Picking a catchment that
-   * belongs elsewhere resets to that region with a cleared selection, rather than opening a
-   * catchment the picker is not listing.
+   * The drill-down is region, then catchment, then site, but a catchment can be opened
+   * directly and its region follows it. Sending the view back out to a continent the user
+   * had already zoomed past was the behaviour Mike Kittridge reported on 25 Aug 2026.
    */
   const handleSelectCatchment = useCallback(
     (id: string) => {
       const picked = index?.catchments.find((c) => c.id === id);
       if (!picked) return;
-      // Reaching outside the active region means the user is changing region, not opening
-      // a catchment the picker is not listing. With no region set yet, anything is fair game.
-      if (region && picked.region !== region) {
-        handleRegionChange(picked.region);
-        return;
-      }
-      if (!region) setRegion(picked.region);
+      setRegion(picked.region);
       if (picked.bbox) setBbox(picked.bbox);
       setSelectedId(id);
       setSelectedSiteId(null);
     },
-    [index, region, handleRegionChange],
+    [index],
   );
 
   // Only sites inside the open catchment are clickable, so this never changes the region.
