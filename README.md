@@ -16,8 +16,8 @@ site's real sampling history. River lines come from HydroRIVERS v1.0 (HydroSHEDS
 are drawn for context, because power has not been extended from sites to river reaches yet.
 
 There is no backend. The browser downloads static JSON and does the arithmetic itself. A
-first visit costs 5.46 MB over 4 requests, opening a catchment adds one more file at a
-median 54 kB, and moving the duration or reduction slider costs no request at all.
+first visit costs 5.46 MB over 4 requests. Opening a catchment pulls one more file, median
+54 kB. Moving the duration or reduction slider is pure arithmetic on what is already loaded.
 
 ## The data is not in this repository
 
