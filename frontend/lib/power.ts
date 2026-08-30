@@ -119,16 +119,19 @@ export function plannedSampleCount(years: number, samplesPerYear: number): numbe
 
 // --- colour scale -----------------------------------------------------------
 
-export const POWER_BREAKS = [0.2, 0.4, 0.6, 0.8];
+/**
+ * Traffic light, on Rich McDowell's 25 Aug 2026 note: red under 0.40, amber from 0.40 to
+ * below 0.80, green at 0.80 and above. 0.80 is the target power the tool is designed
+ * around, so the green edge is the decision the reader is actually making.
+ */
+export const POWER_BREAKS = [0.4, 0.8];
 
-export const POWER_COLOURS = ["#e2e8f0", "#bfdbfe", "#60a5fa", "#2563eb", "#1e3a8a"];
+export const POWER_COLOURS = ["#d32f2f", "#f9a825", "#2e7d32"];
 
 export const POWER_LEGEND = [
-  { label: "< 0.20", colour: POWER_COLOURS[0] },
-  { label: "0.20+", colour: POWER_COLOURS[1] },
-  { label: "0.40+", colour: POWER_COLOURS[2] },
-  { label: "0.60+", colour: POWER_COLOURS[3] },
-  { label: "0.80+", colour: POWER_COLOURS[4] },
+  { label: "< 0.40", colour: POWER_COLOURS[0] },
+  { label: "0.40-0.79", colour: POWER_COLOURS[1] },
+  { label: "0.80+", colour: POWER_COLOURS[2] },
 ];
 
 /** `power` is a fraction 0-1. */

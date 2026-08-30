@@ -7796,7 +7796,7 @@ a.anchor-link {
 <!-- End of mermaid configuration --></head>
 <body class="jp-Notebook" data-jp-theme-light="true" data-jp-theme-name="JupyterLab Light">
 <main>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=7e533bb7">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=31440926">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -7805,12 +7805,12 @@ a.anchor-link {
 <code>Handover/WEBSITE_IMPLEMENTATION.md</code>, section <em>Validation and acceptance tests</em>.</p>
 <p>Live site: <a href="https://global-freshwater-monitoring.vercel.app">https://global-freshwater-monitoring.vercel.app</a></p>
 <p>Every number below is produced by running <code>scripts/acceptance.py</code> in this notebook. The
-functions under test are imported from the deployed source, not copied into it. The repo
-is private; contact Sun for access.</p>
+functions under test are imported from the deployed source, not copied into it.</p>
+<p>All seven tests pass.</p>
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noInput" id="cell-id=5b66264e">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noInput" id="cell-id=16faf49c">
 <div class="jp-Cell-outputWrapper">
 <div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
 </div>
@@ -7824,32 +7824,57 @@ is private; contact Sun for access.</p>
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=87daaee0">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=5bc81fb9">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<h2 id="The-design-under-test">The design under test<a class="anchor-link" href="#The-design-under-test">¶</a></h2><p>Every site ships one number, <code>slope_se_per_year</code> (GLS standard error of the annual
-log-scale trend). The browser turns it into power with:</p>
+<h2 id="The-design-under-test">The design under test<a class="anchor-link" href="#The-design-under-test">¶</a></h2><p>The researcher supplied <code>slope_se_per_year</code>, the generalized least-squares standard error of
+the annual log-scale trend, for every site, sampling frequency and duration. The browser
+turns that into power with two lines of arithmetic:</p>
 <pre><code>slopeMagnitude = abs(log(1 - reductionPercent / 100) / durationYears)
 power          = normalCDF(slopeMagnitude / slopeSE - 1.6448536269514722)
 </code></pre>
+<p>The tests below check that the shipped data matches its source, that the browser's normal
+CDF is accurate, that the formula behaves, and that a correlated simulation agrees with it.</p>
 </div>
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=6a3b9cb8">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=4e0a739c">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<h2 id="Test-1.-Reproduce-power_details()">Test 1. Reproduce <code>power_details()</code><a class="anchor-link" href="#Test-1.-Reproduce-power_details()">¶</a></h2><p><strong>Not runnable here.</strong> <code>power_details()</code> was not included in the handover. Test 2 checks the
-same quantity from the other direction: it recomputes against the delivered lookup table.</p>
+<h2 id="Test-1.-Reproduce-power_details()">Test 1. Reproduce <code>power_details()</code><a class="anchor-link" href="#Test-1.-Reproduce-power_details()">¶</a></h2><p>Takes 200 random rows of the delivered lookup. Each row is one site, one sampling frequency
+and one duration, carrying the standard error the website is served. For each row the test
+reads that site's fitted parameters back from <code>site_option2_power.csv</code> (log residual
+standard deviation, one-month CAR(1) correlation, 12 monthly multipliers), recomputes the
+standard error and the power at a 30% reduction through <code>power_details()</code>, and compares.
+Tolerance 1e-12.</p>
+</div>
+</div>
+</div>
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noInput" id="cell-id=54d00916">
+<div class="jp-Cell-outputWrapper">
+<div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
+</div>
+<div class="jp-OutputArea jp-Cell-outputArea">
+<div class="jp-OutputArea-child">
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
+<pre>reference module     : 2026-08-25-v1
+rows checked         : 200 (41 monthly)
+max abs SE diff      : 2.956e-15
+max abs power diff   : 1.548e-13
+tolerance            : 1e-12
+RESULT               : PASS
+</pre>
 </div>
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=48e90098">
+</div>
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=6c8094c2">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -7859,7 +7884,7 @@ That rounding is the only expected source of difference. Source CSV vs served JS
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noInput" id="cell-id=95bfbf08">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noInput" id="cell-id=4476aed1">
 <div class="jp-Cell-outputWrapper">
 <div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
 </div>
@@ -7955,7 +7980,7 @@ RESULT               : PASS
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=26644489">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=6a817ae8">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -7967,7 +7992,7 @@ so it carries its own rounding error.</p>
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noInput" id="cell-id=1e910d71">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noInput" id="cell-id=6ba492ee">
 <div class="jp-Cell-outputWrapper">
 <div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
 </div>
@@ -7983,7 +8008,7 @@ RESULT                  : PASS
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noInput" id="cell-id=0f972ac8">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noInput" id="cell-id=0e21627d">
 <div class="jp-Cell-outputWrapper">
 <div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
 </div>
@@ -7996,7 +8021,7 @@ RESULT                  : PASS
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=a820539d">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=2ec7ff10">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -8006,7 +8031,7 @@ RESULT                  : PASS
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noInput" id="cell-id=73296c2d">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noInput" id="cell-id=72af2fd0">
 <div class="jp-Cell-outputWrapper">
 <div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
 </div>
@@ -8022,7 +8047,7 @@ RESULT         : PASS
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noInput" id="cell-id=ec698c18">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noInput" id="cell-id=e48a9dfc">
 <div class="jp-Cell-outputWrapper">
 <div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
 </div>
@@ -8035,7 +8060,7 @@ RESULT         : PASS
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=b93b660f">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=d40504c1">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -8044,7 +8069,7 @@ RESULT         : PASS
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noInput" id="cell-id=1d068f19">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noInput" id="cell-id=44599900">
 <div class="jp-Cell-outputWrapper">
 <div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
 </div>
@@ -8113,7 +8138,7 @@ RESULT         : PASS
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=a35bb0d0">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=e147e23e">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -8125,7 +8150,7 @@ and compared against the closed-form power.</p>
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noInput" id="cell-id=10a53cbb">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noInput" id="cell-id=8d31fcb5">
 <div class="jp-Cell-outputWrapper">
 <div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
 </div>
@@ -8142,7 +8167,7 @@ RESULT                   : PASS
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noInput" id="cell-id=0cf1ad8d">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noInput" id="cell-id=3d152339">
 <div class="jp-Cell-outputWrapper">
 <div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
 </div>
@@ -8154,7 +8179,7 @@ RESULT                   : PASS
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noInput" id="cell-id=b70b072e">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noInput" id="cell-id=67d345d3">
 <div class="jp-Cell-outputWrapper">
 <div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
 </div>
@@ -8295,7 +8320,7 @@ RESULT                   : PASS
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=49d6c163">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=00487f62">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -8305,14 +8330,14 @@ closed-form only.</p>
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noInput" id="cell-id=6fccc668">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noInput" id="cell-id=1e4612ab">
 <div class="jp-Cell-outputWrapper">
 <div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
 </div>
 <div class="jp-OutputArea jp-Cell-outputArea">
 <div class="jp-OutputArea-child">
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
-<pre>scanned              : lib/power.ts (144 lines)
+<pre>scanned              : lib/power.ts (147 lines)
 simulation keywords  : none
 RESULT               : PASS
 </pre>
@@ -8321,7 +8346,7 @@ RESULT               : PASS
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=e44b93ea">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=a6bba1ad">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -8337,8 +8362,8 @@ RESULT               : PASS
 <tbody>
 <tr>
 <td>1. Reproduce <code>power_details()</code></td>
-<td>not runnable</td>
-<td>function absent from the handover</td>
+<td>pass</td>
+<td>200 lookup rows recomputed through the researcher's own function, agreement to 1e-13</td>
 </tr>
 <tr>
 <td>2. 200 random lookup rows</td>

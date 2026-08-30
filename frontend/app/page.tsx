@@ -38,7 +38,10 @@ const SECTIONS: Section[] = [
     body2:
       "Catchments are HydroBASINS level 6 v1c in EPSG:4326, 1,177 of 16,397 worldwide " +
       "containing at least one monitored site. The supplied GeoJSON is simplified for web " +
-      "display and is not an authoritative analysis layer.",
+      "display and is not an authoritative analysis layer. River reaches inside an open " +
+      "catchment come from HydroRIVERS v1.0 (HydroSHEDS, WWF), which shares that grid. " +
+      "They are drawn as context: power is calculated at monitored sites and has not been " +
+      "extrapolated to river reaches.",
   },
   {
     heading: "Limits",

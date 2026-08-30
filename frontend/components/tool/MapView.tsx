@@ -5,6 +5,7 @@ import "leaflet/dist/leaflet.css";
 
 import FitBounds from "./layers/FitBounds";
 import CatchmentOutlines from "./layers/CatchmentOutlines";
+import RiverLayer from "./layers/RiverLayer";
 import SiteLayer from "./layers/SiteLayer";
 import Legend from "./Legend";
 import type { SiteResult } from "@/lib/summary";
@@ -28,8 +29,18 @@ interface Props {
   onJumpRegion: (region: string) => void;
 }
 
-/** Neutral grey basemap. The data carries the colour, not the terrain. */
-const BASEMAP = "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png";
+/**
+ * Neutral grey basemap. The data carries the colour, not the terrain.
+ *
+ * This was CARTO's light_all until 27 Aug 2026, when CARTO began stamping
+ * "API KEY REQUIRED" across every key-free tile, including the ones the live site was
+ * already serving. Esri's World Light Gray Base needs no key and no account.
+ */
+const BASEMAP =
+  "https://services.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}";
+
+/** Esri stops publishing this layer above zoom 16; Leaflet then upscales the last tile. */
+const BASEMAP_MAX_ZOOM = 16;
 /** Full extent of one world, in Leaflet's [south, west], [north, east] order. */
 const WORLD_BOUNDS: [[number, number], [number, number]] = [
   [-85, -180],
@@ -37,7 +48,7 @@ const WORLD_BOUNDS: [[number, number], [number, number]] = [
 ];
 
 const ATTRIBUTION =
-  '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>';
+  'Tiles &copy; <a href="https://www.esri.com/">Esri</a>, HERE, Garmin, &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors · rivers <a href="https://www.hydrosheds.org/products/hydrorivers">HydroRIVERS</a> (HydroSHEDS, WWF)';
 
 export default function MapView({
   outlines,
@@ -67,8 +78,15 @@ export default function MapView({
         maxBoundsViscosity={1}
         className="h-full w-full"
       >
-        {/* `bounds` stops noWrap asking for x=-1 and x=4 at zoom 2, which CARTO 400s on. */}
-        <TileLayer url={BASEMAP} attribution={ATTRIBUTION} noWrap bounds={WORLD_BOUNDS} />
+        {/* `bounds` stops noWrap asking for x=-1 and x=4 at zoom 2, which the tile server
+            answers with an error rather than an empty tile. */}
+        <TileLayer
+          url={BASEMAP}
+          attribution={ATTRIBUTION}
+          noWrap
+          bounds={WORLD_BOUNDS}
+          maxNativeZoom={BASEMAP_MAX_ZOOM}
+        />
         <FitBounds bbox={bbox} />
         <CatchmentOutlines
           outlines={outlines}
@@ -78,6 +96,7 @@ export default function MapView({
           onSelect={onSelectCatchment}
           onJumpRegion={onJumpRegion}
         />
+        <RiverLayer selectedCatchmentId={selectedId} />
         <SiteLayer
           results={results}
           selectedCatchmentId={selectedId}
@@ -94,7 +113,7 @@ export default function MapView({
         </div>
       )}
 
-      <Legend />
+      <Legend showRivers={Boolean(selectedId)} />
     </div>
   );
 }
