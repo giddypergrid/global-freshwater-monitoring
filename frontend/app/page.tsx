@@ -132,7 +132,10 @@ export default function Home() {
           </p>
         </section>
 
-        <section className="h-[82vh] min-h-[620px] overflow-hidden rounded-lg border border-slate-300 shadow-sm">
+        {/* `isolate` keeps Leaflet's own z-indexes inside this box. Its map pane is 400 and
+            its controls are 800, so without a stacking context here they paint over the
+            sticky header the moment the page scrolls. */}
+        <section className="isolate h-[82vh] min-h-[620px] overflow-hidden rounded-lg border border-slate-300 shadow-sm">
           <ToolShell />
         </section>
 
