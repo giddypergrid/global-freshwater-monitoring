@@ -9,12 +9,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { CatchmentSummary, RegionSummary } from "@/lib/types";
+import { siteCountFor } from "@/lib/summary";
+import type {
+  CatchmentSummary,
+  NutrientKey,
+  RegionSummary,
+} from "@/lib/types";
 
 interface Props {
   regions: RegionSummary[];
   catchments: CatchmentSummary[];
   region: string;
+  nutrient: NutrientKey;
   selectedId: string | null;
   onRegionChange: (region: string) => void;
   onSelect: (id: string) => void;
@@ -33,6 +39,7 @@ export default function CatchmentPicker({
   regions,
   catchments,
   region,
+  nutrient,
   selectedId,
   onRegionChange,
   onSelect,
@@ -63,8 +70,13 @@ export default function CatchmentPicker({
         : catchments; // no region yet, so the whole world is on offer
 
     // 1,177 rows would be a scroll to nowhere; the busiest catchments come first.
-    return [...pool].sort((a, b) => b.records - a.records).slice(0, MAX_VISIBLE);
-  }, [catchments, region, term]);
+    // Ranked and counted for the nutrient on screen, since `records` adds total nitrogen
+    // and total phosphorus together and would offer catchments holding none of the one
+    // being viewed.
+    return [...pool]
+      .sort((a, b) => siteCountFor(b, nutrient) - siteCountFor(a, nutrient))
+      .slice(0, MAX_VISIBLE);
+  }, [catchments, region, term, nutrient]);
 
   useEffect(() => {
     if (!open) return;
@@ -160,7 +172,7 @@ export default function CatchmentPicker({
                           active ? "text-slate-300" : "text-slate-500"
                         }`}
                       >
-                        {c.records} sites
+                        {siteCountFor(c, nutrient)} sites
                       </span>
                     </button>
                   </li>

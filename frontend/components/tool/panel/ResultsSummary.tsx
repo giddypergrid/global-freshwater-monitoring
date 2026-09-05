@@ -72,8 +72,9 @@ export default function ResultsSummary({
       <section className="space-y-3">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
+            {/* The original site identifier, not the app's `TP::WQ958388` lookup key. */}
             <div className="truncate font-mono text-sm font-medium text-slate-900">
-              {site.id}
+              {site.siteId}
             </div>
             <div className="text-[11px] text-slate-500">
               {site.region} · {site.lat.toFixed(4)}, {site.lon.toFixed(4)} · EPSG:4326
@@ -120,7 +121,13 @@ export default function ResultsSummary({
               value={`${frequency.label}, ${query.years} yr, ${query.reduction}% reduction`}
             />
             <Row label="Planned samples" value={samples.toLocaleString()} mono />
-            <Row label="slope_se_per_year" value={selected.slopeSe.toPrecision(4)} mono />
+            {/* Plain words rather than the raw `slope_se_per_year` column name. Spelling the
+                column out in the label as well pushed the value off the edge of the panel. */}
+            <Row
+              label="Standard error of annual trend"
+              value={selected.slopeSe.toPrecision(4)}
+              mono
+            />
             <Row
               label="Smallest detectable reduction"
               value={`${selected.minDetectable.toFixed(1)}%`}

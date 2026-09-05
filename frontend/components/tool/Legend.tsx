@@ -5,10 +5,18 @@ interface Props {
   showRivers: boolean;
 }
 
-/** Power colour key, pinned over the map's bottom-right corner. */
+/**
+ * Power colour key, pinned over the map's bottom-right corner, above the tile credits.
+ *
+ * The offset is stepped by width because Leaflet's attribution bar wraps as the map narrows
+ * and the legend has to clear whatever height it takes: measured on 5 Sep 2026 it runs one
+ * line and 18 px wide, two lines and 34 px around 900 px, and four lines and 84 px at 430 px.
+ * At a flat `bottom-6` the credits ran underneath the box at every width tested, hiding the
+ * HydroRIVERS and OpenStreetMap credits that the tile licences require to stay readable.
+ */
 export default function Legend({ showRivers }: Props) {
   return (
-    <div className="absolute bottom-6 right-3 z-[1000] rounded-md border border-slate-300 bg-white/95 px-3 py-2 shadow-sm">
+    <div className="absolute bottom-24 right-3 z-[1000] rounded-md border border-slate-300 bg-white/95 px-3 py-2 shadow-sm sm:bottom-14 lg:bottom-8">
       <div className="mb-1.5 text-[11px] font-medium tracking-wide text-slate-700 uppercase">
         Detection power
       </div>

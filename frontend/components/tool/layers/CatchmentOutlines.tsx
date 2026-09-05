@@ -4,16 +4,19 @@ import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useMap } from "react-leaflet";
 import L from "leaflet";
 
+import { siteCountFor } from "@/lib/summary";
 import type {
   CatchmentOutlineProps,
   CatchmentOutlines as OutlineCollection,
   CatchmentSummary,
+  NutrientKey,
 } from "@/lib/types";
 
 interface Props {
   outlines: OutlineCollection | null;
   catchments: CatchmentSummary[];
   region: string;
+  nutrient: NutrientKey;
   selectedId: string | null;
   onSelect: (id: string) => void;
   onJumpRegion: (region: string) => void;
@@ -68,6 +71,7 @@ export default function CatchmentOutlines({
   outlines,
   catchments,
   region,
+  nutrient,
   selectedId,
   onSelect,
   onJumpRegion,
@@ -82,7 +86,7 @@ export default function CatchmentOutlines({
   /** Catchment centres in lat/lng, projected to pixels only when the view moves. */
   const centres = useRef<{ id: string; lat: number; lng: number }[]>([]);
   const projected = useRef<{ id: string; x: number; y: number }[]>([]);
-  /** Set while the cursor is genuinely inside a polygon; an exact hit beats any snap. */
+  /** Set while the cursor sits inside a polygon; an exact hit beats any snap. */
   const exactId = useRef<string | null>(null);
   const hoverId = useRef<string | null>(null);
 
@@ -99,9 +103,12 @@ export default function CatchmentOutlines({
     [catchments],
   );
 
+  // Counted for the nutrient on screen, not `c.records`, which adds total nitrogen and
+  // total phosphorus together. Catchment 2060497340 reads 184 records, all phosphorus, so
+  // under total nitrogen the tooltip offered 184 sites and the map then drew none.
   const recordsOf = useMemo(
-    () => new Map(catchments.map((c) => [c.id, c.records])),
-    [catchments],
+    () => new Map(catchments.map((c) => [c.id, siteCountFor(c, nutrient)])),
+    [catchments, nutrient],
   );
 
   const styleFor = useCallback(

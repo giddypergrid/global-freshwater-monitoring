@@ -1,7 +1,7 @@
 /**
  * Catchment-level roll-up.
  *
- * These are summaries of SITE-SPECIFIC results — the share of a catchment's monitored
+ * These are summaries of SITE-SPECIFIC results, the share of a catchment's monitored
  * sites that individually reach the target. They are NOT the power of a pooled
  * catchment-wide trend test, which would need a multilevel model that represents how
  * sites on the same river depend on each other. Label them accordingly in the UI.
@@ -15,7 +15,28 @@ import {
   powerForReduction,
 } from "./power";
 import { slopeSe } from "./data";
-import type { PowerSlice, Query, Site } from "./types";
+import type {
+  CatchmentSummary,
+  NutrientKey,
+  PowerSlice,
+  Query,
+  Site,
+} from "./types";
+
+/**
+ * How many sites a catchment holds for the nutrient currently on screen.
+ *
+ * `records` on a catchment is total nitrogen and total phosphorus added together, so it
+ * overstates what the map can draw whenever one of the two is empty. Catchment 2060497340
+ * carries `records` 184, all of it phosphorus and none of it nitrogen: labelling it "184
+ * site records" while total nitrogen is selected promised 184 dots and drew none.
+ */
+export function siteCountFor(
+  catchment: CatchmentSummary,
+  nutrient: NutrientKey,
+): number {
+  return nutrient === "tn" ? catchment.tn : catchment.tp;
+}
 
 export interface SiteResult {
   site: Site;

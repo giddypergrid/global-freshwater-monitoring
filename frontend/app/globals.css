@@ -130,3 +130,13 @@
     @apply font-sans;
   }
 }
+/*
+ * One world at zoom 2 is 1,024 px wide, narrower than the map pane on a desktop, so a strip
+ * of bare container showed down each side and read as a half-drawn map. Leaflet paints that
+ * strip #dddddd by default while the Esri tiles' ocean is #d0cfd4, both sampled from the
+ * running page on 5 Sep 2026, and the mismatch is what made the edges obvious. Matching the
+ * ocean lets the empty area read as more sea.
+ */
+.leaflet-container {
+  background: #d0cfd4;
+}

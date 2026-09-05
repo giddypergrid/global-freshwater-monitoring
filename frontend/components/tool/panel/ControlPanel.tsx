@@ -78,6 +78,7 @@ export default function ControlPanel({
             regions={index.regions}
             catchments={index.catchments}
             region={region}
+            nutrient={query.nutrient}
             selectedId={selectedId}
             onRegionChange={onRegionChange}
             onSelect={onSelectCatchment}

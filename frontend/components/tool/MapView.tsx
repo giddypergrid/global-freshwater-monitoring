@@ -7,17 +7,21 @@ import FitBounds from "./layers/FitBounds";
 import CatchmentOutlines from "./layers/CatchmentOutlines";
 import RiverLayer from "./layers/RiverLayer";
 import SiteLayer from "./layers/SiteLayer";
+import ViewportWatcher from "./layers/ViewportWatcher";
 import Legend from "./Legend";
 import type { SiteResult } from "@/lib/summary";
 import type {
   CatchmentOutlines as OutlineCollection,
   DataIndex,
+  NutrientKey,
 } from "@/lib/types";
+import type { LatLngBounds } from "leaflet";
 
 interface Props {
   outlines: OutlineCollection | null;
   index: DataIndex | null;
   region: string;
+  nutrient: NutrientKey;
   selectedId: string | null;
   results: SiteResult[];
   selectedSiteId: string | null;
@@ -27,6 +31,7 @@ interface Props {
   onSelectCatchment: (id: string) => void;
   onSelectSite: (id: string | null) => void;
   onJumpRegion: (region: string) => void;
+  onViewportChange: (bounds: LatLngBounds) => void;
 }
 
 /**
@@ -54,6 +59,7 @@ export default function MapView({
   outlines,
   index,
   region,
+  nutrient,
   selectedId,
   results,
   selectedSiteId,
@@ -63,6 +69,7 @@ export default function MapView({
   onSelectCatchment,
   onSelectSite,
   onJumpRegion,
+  onViewportChange,
 }: Props) {
   return (
     <div className="relative h-full w-full">
@@ -87,11 +94,13 @@ export default function MapView({
           bounds={WORLD_BOUNDS}
           maxNativeZoom={BASEMAP_MAX_ZOOM}
         />
+        <ViewportWatcher onChange={onViewportChange} />
         <FitBounds bbox={bbox} />
         <CatchmentOutlines
           outlines={outlines}
           catchments={index?.catchments ?? []}
           region={region}
+          nutrient={nutrient}
           selectedId={selectedId}
           onSelect={onSelectCatchment}
           onJumpRegion={onJumpRegion}
