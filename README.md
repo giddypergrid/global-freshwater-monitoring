@@ -1,6 +1,6 @@
 # Global Freshwater Monitoring
 
-**Live at [global-freshwater-monitoring.vercel.app](https://global-freshwater-monitoring.vercel.app)**
+Live: [global-freshwater-monitoring.vercel.app](https://global-freshwater-monitoring.vercel.app)
 
 Built for Prof. Rich McDowell's group at the Bioeconomy Science Institute (AgResearch), and handed
 over in August 2026.
@@ -8,8 +8,8 @@ over in August 2026.
 Pick a river catchment, a nutrient, how often you would sample and for how long, and a target
 reduction. The map colours every monitoring site in that catchment by detection power: the
 probability that a real decrease of that size would show up in the data. Red is below 0.40, amber
-from 0.40, green at 0.80 and above. 0.80 is the target the tool is built around, so the green sites
-are the ones where the monitoring design would work.
+from 0.40, green at 0.80 and above. 0.80 is the target the tool is built around, so green sites are
+the ones where the monitoring design would work.
 
 ## Setup
 
@@ -21,7 +21,7 @@ handover data, one script rebuilds everything the site serves.
 
 ```
 your-folder/
-├── Handover/                          the researchers' drop
+├── Handover/                          the handover data
 │   ├── monitored_site_locations.csv
 │   ├── monitored_catchments_summary.csv
 │   ├── monitored_site_slope_se_lookup.csv
@@ -29,8 +29,8 @@ your-folder/
 └── global-freshwater-monitoring/      this repository
 ```
 
-If it lives somewhere else, set `HANDOVER_DIR` to that path instead. Either way the script tells you
-which files it could not find rather than failing on a stack trace.
+If it lives somewhere else, set `HANDOVER_DIR` to that path instead. If a file is missing the script
+names it and exits.
 
 **2. Build the data.** Python 3.10 or newer with pandas:
 
@@ -53,11 +53,11 @@ npm run build
 npm start
 ```
 
-It serves on `http://localhost:3000`. There is no backend, no database and no environment file, so
-the built output is a static site plus `public/data/`, and any static host will serve it.
+It serves on `http://localhost:3000`. There is no backend, no database and no environment file. The
+built output is a static site plus `public/data/`, so any static host will serve it.
 
-River lines are optional and are built separately, because the handover has no river geometry. Until
-you build them the map works normally and simply draws no rivers:
+River lines are separate, because the handover has no river geometry. Without them the map draws no
+rivers and works otherwise:
 
 ```bash
 python frontend/scripts/build_river_network.py --rivers <folder of unzipped HydroRIVERS regions>
@@ -66,10 +66,9 @@ python frontend/scripts/build_river_network.py --rivers <folder of unzipped Hydr
 HydroRIVERS v1.0 is a free download from
 [hydrosheds.org](https://www.hydrosheds.org/products/hydrorivers) and needs attribution.
 
-Verified on 7 September 2026 by cloning this repository fresh, rebuilding the data with no
-configuration, and running `npm ci && npm run build && npm start`. Every file the app fetches
-returned 200, and the rebuilt data matched the live deployment byte for byte apart from the build
-timestamp in `index.json`.
+Checked on 7 September 2026 from a fresh clone: every file the app fetches returned 200, and the
+rebuilt data matched the live deployment byte for byte apart from the build timestamp in
+`index.json`.
 
 ## Data
 
@@ -78,10 +77,9 @@ catchment polygons worldwide. Each record is one site measured for one nutrient,
 site's real sampling history, which runs from 1967 to 2025. Total phosphorus has 11,224 records and
 total nitrogen 4,089. The median site has 117 samples for nitrogen and 125 for phosphorus.
 
-Coverage is heavily uneven, and that is the dataset, not the tool: Europe 8,607 records (56.2%),
-North America 3,694 (24.1%), Oceania 2,345 (15.3%), South America 397 (2.6%), Asia 186 (1.2%),
-Africa 84 (0.5%). A user opening an African catchment often finds one site or none, so the empty
-state is a designed screen rather than a blank map.
+Coverage is uneven: Europe 8,607 records (56.2%), North America 3,694 (24.1%), Oceania 2,345
+(15.3%), South America 397 (2.6%), Asia 186 (1.2%), Africa 84 (0.5%). Opening an African catchment
+often finds one site or none, so there is an explicit empty state for that.
 
 ## Architecture
 
@@ -94,15 +92,38 @@ once by the researchers. What is left is a power calculation from stored coeffic
 multiplications per site. Putting a server in front of that would have added hosting the group has
 to pay for and maintain after I leave.
 
+## Rendering
+
+Background sites are thinned on a screen grid: one site per grid cell, so two dots are never drawn
+on top of each other. The cell shrinks as you zoom in and switches off at zoom 7, from which point
+every site on screen is drawn. Sites in the open catchment are never thinned.
+
+Measured over total phosphorus on one zoom in, starting on the whole world at zoom 2 and ending over
+western Europe:
+
+| Zoom | Grid cell | Dot radius | Sites in view | Sites drawn |
+|---|---|---|---|---|
+| 2 | 8 px | 1.6 px | 11,224 | 515 |
+| 3 | 8 px | 1.6 px | 9,048 | 822 |
+| 4 | 6.5 px | 2 px | 7,194 | 1,032 |
+| 5 | 6.5 px | 2 px | 6,955 | 1,962 |
+| 6 | 6 px | 2.6 px | 5,652 | 3,056 |
+| 7 | off | 3 px | 4,121 | 4,121 |
+| 8 | off | 3 px | 1,786 | 1,786 |
+| 9 | off | 3 px | 494 | 494 |
+| 10+ | off | 3.6 px | 151 | 151 |
+
+This replaced a flat 4,000-marker cap on 4 September 2026. That cap walked the site list in file
+order and stopped dead, so at Europe-wide zoom 7,205 sites were on screen, 4,000 were drawn and
+3,205 were dropped. It cost France 46.6% of its sites against 98 to 100% for Germany, the United
+Kingdom and Poland, because France has more sites than the rest of the view combined and its own
+tail ran past the cutoff.
+
+The grid costs less than it saves. At zoom 4 with 7,194 sites in view, thinning takes 2.1 ms and
+drawing the 2,414 dots it keeps takes 4.7 ms, against 11.1 ms to draw all 7,194.
+
 ## Notes
 
-- **Background sites are thinned on a screen grid, not capped.** At zoom 6 and wider the map keeps
-  one site per 6 to 8 screen pixels, so the dots stay separate and the country names underneath stay
-  readable. From zoom 7 in, thinning is off and every site on screen is drawn, and the open
-  catchment's own sites are never thinned. This replaced a flat 4,000-marker cap on 4 September
-  2026, which walked the site list in file order and stopped dead: at Europe-wide zoom 7,205 sites
-  were on screen, 4,000 were drawn and 3,205 were dropped, which cost France 46.6% of its sites
-  against 98 to 100% for Germany, the United Kingdom and Poland.
 - **Clicks snap to the nearest catchment within 5 km.** At world zoom the median catchment is 2.8
   pixels across, so requiring an exact hit made the map feel broken. Sites outside HydroBASINS
   coverage are labelled as such instead of being dropped.
@@ -111,18 +132,18 @@ to pay for and maintain after I leave.
 
 ## Files
 
-| File | Why |
+| File | Contains |
 |---|---|
-| [`frontend/lib/power.ts`](frontend/lib/power.ts) | The detection power calculation, which is what the tool exists to do |
-| [`frontend/lib/data.ts`](frontend/lib/data.ts) | The load strategy: what comes down first, what waits for a click |
+| [`frontend/lib/power.ts`](frontend/lib/power.ts) | The detection power calculation |
+| [`frontend/lib/data.ts`](frontend/lib/data.ts) | What loads first, what waits for a click |
+| [`frontend/components/tool/layers/SiteLayer.tsx`](frontend/components/tool/layers/SiteLayer.tsx) | Site markers and the screen-grid thinning |
 | [`frontend/scripts/build_handover_data.py`](frontend/scripts/build_handover_data.py) | Handover CSVs to the JSON the browser reads |
 | [`frontend/scripts/acceptance.py`](frontend/scripts/acceptance.py) | The seven acceptance tests from the handover |
 
 Seven acceptance tests came with the handover and all seven pass; `acceptance_report.pdf` holds the
 last full run. Test 1 needs the researchers' `site_option2_power.csv`, which lives outside the
 repository, and reports itself unrunnable when that file is absent instead of failing.
-`frontend/README.md` goes through the data processing, the interaction flow and the rendering in
-detail.
+`frontend/README.md` covers the data processing, the interaction flow and the rendering in detail.
 
 ---
 
@@ -130,7 +151,7 @@ Next.js 16 (App Router), React 19, TypeScript, Tailwind v4, Leaflet. Build scrip
 with pandas, numpy, scipy, shapely and pyshp.
 
 ```
-frontend/           the whole application
+frontend/           the application
 frontend/lib/       data loading and the power calculation
 frontend/scripts/   build the data, run the tests, drive the browser
 ```
