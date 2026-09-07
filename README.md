@@ -11,7 +11,7 @@ probability that a real decrease of that size would show up in the data. Red is 
 from 0.40, green at 0.80 and above. 0.80 is the target the tool is built around, so the green sites
 are the ones where the monitoring design would work.
 
-## Running it yourself
+## Setup
 
 The processed data is not in this repository, because the source dataset is Rich McDowell's and is
 not redistributable. A clone on its own runs and the map comes up empty. If you have the original
@@ -71,7 +71,7 @@ configuration, and running `npm ci && npm run build && npm start`. Every file th
 returned 200, and the rebuilt data matched the live deployment byte for byte apart from the build
 timestamp in `index.json`.
 
-## What is in the data
+## Data
 
 15,313 monitored site-nutrient records across 1,177 HydroBASINS level 6 catchments, out of 16,397
 catchment polygons worldwide. Each record is one site measured for one nutrient, fitted against that
@@ -83,7 +83,7 @@ North America 3,694 (24.1%), Oceania 2,345 (15.3%), South America 397 (2.6%), As
 Africa 84 (0.5%). A user opening an African catchment often finds one site or none, so the empty
 state is a designed screen rather than a blank map.
 
-## No backend
+## Architecture
 
 The browser downloads static JSON and does the arithmetic itself. A first visit costs 5.46 MB over
 4 requests. Opening a catchment pulls one more file, median 54 kB. Moving the duration or reduction
@@ -94,7 +94,7 @@ once by the researchers. What is left is a power calculation from stored coeffic
 multiplications per site. Putting a server in front of that would have added hosting the group has
 to pay for and maintain after I leave.
 
-## Other decisions
+## Notes
 
 - **Background sites are thinned on a screen grid, not capped.** At zoom 6 and wider the map keeps
   one site per 6 to 8 screen pixels, so the dots stay separate and the country names underneath stay
@@ -109,7 +109,7 @@ to pay for and maintain after I leave.
 - **River lines are context only.** HydroRIVERS v1.0 shards are drawn per catchment, but power has
   not been extended from sites to river reaches yet, so the lines carry no colour.
 
-## Where to look
+## Files
 
 | File | Why |
 |---|---|
