@@ -10,12 +10,16 @@ Partitioning follows WEBSITE_IMPLEMENTATION.md: the browser never receives the f
 import hashlib
 import json
 import math
+import os
 import shutil
 from pathlib import Path
 
 import pandas as pd
 
-HANDOVER = Path(r"C:\Users\PC\Desktop\River\Handover")
+# The researchers' CSV and GeoJSON drop, which is not in the repository. It defaults to a
+# Handover folder sitting next to the repository, and HANDOVER_DIR overrides that.
+REPO = Path(__file__).resolve().parent.parent.parent
+HANDOVER = Path(os.environ.get("HANDOVER_DIR", REPO.parent / "Handover"))
 OUT = Path(__file__).resolve().parent.parent / "public" / "data"
 
 # Coordinate precision: 5 dp is ~1 m, far finer than a 0.005 deg simplified outline.
@@ -47,6 +51,27 @@ def write_json(path: Path, payload) -> int:
     text = json.dumps(payload, separators=(",", ":"), allow_nan=False)
     path.write_text(text, encoding="utf-8")
     return len(text.encode("utf-8"))
+
+
+REQUIRED = [
+    "monitored_site_locations.csv",
+    "monitored_catchments_summary.csv",
+    "monitored_site_slope_se_lookup.csv",
+    "monitored_hydrobasins_level6.geojson",
+]
+
+
+def check_handover() -> None:
+    """Fail with the folder and the file names rather than a pandas path error."""
+    missing = [name for name in REQUIRED if not (HANDOVER / name).is_file()]
+    if not missing:
+        return
+    raise SystemExit(
+        f"Handover data not found in {HANDOVER}\n"
+        f"Missing: {', '.join(missing)}\n"
+        "Put the researchers' handover folder next to this repository, or set "
+        "HANDOVER_DIR to wherever it is."
+    )
 
 
 def load_sites() -> pd.DataFrame:
@@ -141,7 +166,7 @@ def build_power_files(sites: pd.DataFrame) -> tuple[dict, list, list]:
             path = OUT / "power" / f"{nutrient_slug}-{freq_slug}.json"
             written[f"{nutrient_slug}-{freq_slug}"] = write_json(path, payload)
 
-    # planned_sample_count is round(years * samples_per_year) — recomputed in the browser.
+    # planned_sample_count is round(years * samples_per_year), recomputed in the browser.
     return written, durations, list(FREQUENCY_SLUG.keys())
 
 
@@ -339,6 +364,7 @@ def write_version() -> str:
 
 
 def main() -> None:
+    check_handover()
     for stale in ["catchments", "power"]:
         shutil.rmtree(OUT / stale, ignore_errors=True)
     for stale in OUT.glob("*.json"):
