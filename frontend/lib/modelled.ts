@@ -61,6 +61,15 @@ export interface ModelledIndex {
   shards: ModelledShardIndexEntry[];
 }
 
+const DATA_ORIGIN =
+  process.env.NEXT_PUBLIC_MODELLED_DATA_URL ??
+  "https://pub-19a8d3292c434db9ba82f5e1b90c9cdb.r2.dev/modelled";
+
+// A shard holds up to 1,000 catchments and parses to several megabytes of objects, and the
+// worst viewport at the minimum zoom touches 70 of them. Holding roughly two of those keeps
+// panning fast while the tab still gives memory back.
+const MAX_CACHED_SHARDS = 150;
+
 const indexCache: { value?: Promise<ModelledIndex> } = {};
 const shardCache = new Map<string, Promise<ModelledShard>>();
 
@@ -74,29 +83,41 @@ async function getJson<T>(path: string): Promise<T> {
 
 export function loadModelledIndex(): Promise<ModelledIndex> {
   if (!indexCache.value) {
-    indexCache.value = getJson<ModelledIndex>(
-      "https://pub-19a8d3292c434db9ba82f5e1b90c9cdb.r2.dev/modelled/index.json",
-    ).catch((error) => {
-      delete indexCache.value;
-      throw error;
-    });
+    indexCache.value = getJson<ModelledIndex>(`${DATA_ORIGIN}/index.json`).catch(
+      (error) => {
+        delete indexCache.value;
+        throw error;
+      },
+    );
   }
 
   return indexCache.value;
 }
 
+/** Drop the least recently used shards once the cache is over its limit. */
+function evictOldestShards(): void {
+  for (const file of shardCache.keys()) {
+    if (shardCache.size <= MAX_CACHED_SHARDS) return;
+    shardCache.delete(file);
+  }
+}
+
 export function loadModelledShard(file: string): Promise<ModelledShard> {
   const existing = shardCache.get(file);
-  if (existing) return existing;
+  if (existing) {
+    // Re-inserting moves it to the end, so the eviction walk sees it as recently used.
+    shardCache.delete(file);
+    shardCache.set(file, existing);
+    return existing;
+  }
 
-  const pending = getJson<ModelledShard>(
-    `https://pub-19a8d3292c434db9ba82f5e1b90c9cdb.r2.dev/modelled/${file}`,
-  ).catch((error) => {
+  const pending = getJson<ModelledShard>(`${DATA_ORIGIN}/${file}`).catch((error) => {
     shardCache.delete(file);
     throw error;
   });
 
   shardCache.set(file, pending);
+  evictOldestShards();
   return pending;
 }
 

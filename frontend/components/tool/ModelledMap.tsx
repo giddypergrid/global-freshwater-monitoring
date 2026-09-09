@@ -11,6 +11,7 @@ import type {
   LatLngBounds,
   LeafletMouseEvent,
   Layer,
+  PathOptions,
 } from "leaflet";
 
 import "leaflet/dist/leaflet.css";
@@ -48,7 +49,9 @@ const WORLD_BOUNDS: [[number, number], [number, number]] = [
   [85, 180],
 ];
 
-const MIN_MODELLED_ZOOM = 5;
+// Rich's floor. At zoom 5 the worst viewport touches 170 shards, 218 MB uncompressed, so
+// raising this to 6 is the quickest lever if that turns out to be too much.
+const MIN_MODELLED_ZOOM = Number(process.env.NEXT_PUBLIC_MODELLED_MIN_ZOOM ?? 5);
 
 function boundsToBbox(
   bounds: LatLngBounds,
@@ -133,6 +136,10 @@ export default function ModelledMap({
   const [features, setFeatures] = useState<ModelledFeature[]>([]);
   const [view, setView] = useState<ViewState | null>(null);
   const [loading, setLoading] = useState(false);
+  // react-leaflet ignores a changed `data` prop, so a new shard set needs a new key. Keeping
+  // the slider values out of that key lets react-leaflet recolour the existing layer through
+  // setStyle instead of remounting it and reprojecting every vertex.
+  const [generation, setGeneration] = useState(0);
 
   useEffect(() => {
     loadModelledIndex().then(setIndex);
@@ -182,9 +189,8 @@ export default function ModelledMap({
 
         if (cancelled) return;
 
-        setFeatures(
-          loaded.flatMap((shard) => shard.features),
-        );
+        setFeatures(loaded.flatMap((shard) => shard.features));
+        setGeneration((previous) => previous + 1);
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -206,6 +212,24 @@ export default function ModelledMap({
       features: zoomedOut ? [] : features,
     };
   }, [features, zoomedOut]);
+
+  const styleFor = useCallback(
+    (rawFeature?: GeoJSON.Feature): PathOptions => {
+      if (!rawFeature || !index) return {};
+      const feature = rawFeature as ModelledFeature;
+      const power = featurePower(feature, nutrient, frequency, years, reduction, index);
+      const selected = feature.properties.id === selectedId;
+
+      return {
+        color: selected ? "#111827" : "#64748b",
+        weight: selected ? 2.5 : 0.6,
+        fillColor: powerColour(power),
+        fillOpacity: 0.65,
+      };
+    },
+    [index, nutrient, frequency, years, reduction, selectedId],
+  );
+
 
   return (
     <div className="relative h-full w-full">
@@ -231,30 +255,9 @@ export default function ModelledMap({
 
         {index && data.features.length > 0 && (
           <GeoJSON
-            key={`${nutrient}-${frequency}-${years}-${reduction}-${features.length}`}
+            key={generation}
             data={data}
-            style={(rawFeature) => {
-              const feature = rawFeature as ModelledFeature;
-
-              const power = featurePower(
-                feature,
-                nutrient,
-                frequency,
-                years,
-                reduction,
-                index,
-              );
-
-              const selected =
-                feature.properties.id === selectedId;
-
-              return {
-                color: selected ? "#111827" : "#64748b",
-                weight: selected ? 2.5 : 0.6,
-                fillColor: powerColour(power),
-                fillOpacity: 0.65,
-              };
-            }}
+            style={styleFor}
             onEachFeature={(rawFeature, layer: Layer) => {
               const feature = rawFeature as ModelledFeature;
 
