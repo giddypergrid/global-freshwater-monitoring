@@ -2,8 +2,11 @@
 
 Live: [global-freshwater-monitoring-screen.vercel.app](https://global-freshwater-monitoring-screen.vercel.app)
 
-Built for Prof. Rich McDowell's group at the Bioeconomy Science Institute (AgResearch), and handed
-over in August 2026.
+I designed and built `/tool`, the monitored site map, for Prof. Rich McDowell's group at the
+Bioeconomy Science Institute (AgResearch), and handed it over in August 2026. Rich McDowell designed
+and built `/modelled`, the global modelled catchment map, in September 2026, including the shard
+format, the 5 degree tiling, the zoom threshold and the Cloudflare R2 hosting. My part there is a
+script that shrinks his shards and two loader fixes.
 
 Pick a river catchment, a nutrient, how often you would sample and for how long, and a target
 reduction. The map colours every monitoring site in that catchment by detection power: the
@@ -11,15 +14,10 @@ probability that a real decrease of that size would show up in the data. Red is 
 from 0.40, green at 0.80 and above. 0.80 is the target the tool is built around, so green sites are
 the ones where the monitoring design would work.
 
-There are two maps, built by different people. `/tool` covers the 1,177 catchments that hold real
-monitoring sites. `/modelled` covers 618,553 HydroBASINS level 10 catchments whose figures come from
-a random forest fitted to catchment properties, so most of them have never been sampled. Both use
-the same power calculation.
-
-Rich McDowell designed and wrote `/modelled` in September 2026, including the shard format, the
-5 degree tiling, the zoom threshold and the Cloudflare R2 hosting. What I contributed there is a
-script that shrinks his shards and two loader fixes. That's it. Everything else in this repository,
-`/tool` and the power calculation both maps call, is mine.
+There are two maps. `/tool` covers the 1,177 catchments that hold real monitoring sites.
+`/modelled` covers 618,553 HydroBASINS level 10 catchments whose figures come from a random forest
+fitted to catchment properties, so most of them have never been sampled. Both use the same power
+calculation.
 
 ## Setup
 
