@@ -1,6 +1,6 @@
 # Global Freshwater Monitoring
 
-Live: [global-freshwater-monitoring.vercel.app](https://global-freshwater-monitoring.vercel.app)
+Live: [global-freshwater-monitoring-screen.vercel.app](https://global-freshwater-monitoring-screen.vercel.app)
 
 Built for Prof. Rich McDowell's group at the Bioeconomy Science Institute (AgResearch), and handed
 over in August 2026.
@@ -10,6 +10,16 @@ reduction. The map colours every monitoring site in that catchment by detection 
 probability that a real decrease of that size would show up in the data. Red is below 0.40, amber
 from 0.40, green at 0.80 and above. 0.80 is the target the tool is built around, so green sites are
 the ones where the monitoring design would work.
+
+There are two maps, built by different people. `/tool` covers the 1,177 catchments that hold real
+monitoring sites. `/modelled` covers 618,553 HydroBASINS level 10 catchments whose figures come from
+a random forest fitted to catchment properties, so most of them have never been sampled. Both use
+the same power calculation.
+
+Rich McDowell designed and wrote `/modelled` in September 2026, including the shard format, the
+5 degree tiling, the zoom threshold and the Cloudflare R2 hosting. What I contributed there is a
+script that shrinks his shards and two loader fixes. That's it. Everything else in this repository,
+`/tool` and the power calculation both maps call, is mine.
 
 ## Setup
 
@@ -81,6 +91,16 @@ Coverage is uneven: Europe 8,607 records (56.2%), North America 3,694 (24.1%), O
 (15.3%), South America 397 (2.6%), Asia 186 (1.2%), Africa 84 (0.5%). Opening an African catchment
 often finds one site or none, so there is an explicit empty state for that.
 
+The modelled side covers 618,553 level 10 catchments, which Rich McDowell built from 941,012
+HydroBASINS polygons with Greenland, Antarctica, desert biomes and catchments over 25% permafrost
+removed. Each one carries a current concentration and slope standard errors for four
+sampling frequencies across ten durations, so the reduction slider still calculates in the browser.
+A predicted figure for a catchment that was actually measured is the weaker of the two, so `/tool`
+stays the answer wherever real sites exist.
+
+Those shards are not in this repository either. They live in a Cloudflare R2 bucket, 1,228 files and
+1.27 GB, and the browser reads them straight from there, so a fresh clone runs `/modelled` as it is.
+
 ## Architecture
 
 The browser downloads static JSON and does the arithmetic itself. A first visit costs 5.46 MB over
@@ -137,7 +157,11 @@ drawing the 2,414 dots it keeps takes 4.7 ms, against 11.1 ms to draw all 7,194.
 | [`frontend/lib/power.ts`](frontend/lib/power.ts) | The detection power calculation |
 | [`frontend/lib/data.ts`](frontend/lib/data.ts) | What loads first, what waits for a click |
 | [`frontend/components/tool/layers/SiteLayer.tsx`](frontend/components/tool/layers/SiteLayer.tsx) | Site markers and the screen-grid thinning |
+| [`frontend/lib/modelled.ts`](frontend/lib/modelled.ts) | Shard index, viewport matching and the R2 fetches |
+| [`frontend/components/tool/ModelledMap.tsx`](frontend/components/tool/ModelledMap.tsx) | The modelled catchment map |
 | [`frontend/scripts/build_handover_data.py`](frontend/scripts/build_handover_data.py) | Handover CSVs to the JSON the browser reads |
+| [`frontend/scripts/build_modelled_global_shards.py`](frontend/scripts/build_modelled_global_shards.py) | Level 10 catchments to the 1,228 shards |
+| [`frontend/scripts/compact_modelled_shards.py`](frontend/scripts/compact_modelled_shards.py) | Rounds those shards down to 19% of their size |
 | [`frontend/scripts/acceptance.py`](frontend/scripts/acceptance.py) | The seven acceptance tests from the handover |
 
 Seven acceptance tests came with the handover and all seven pass; `acceptance_report.pdf` holds the

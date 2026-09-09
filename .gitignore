@@ -29,3 +29,6 @@ Thumbs.db
 
 .vercel
 .env*
+
+# local Claude Code dev config
+.claude/
